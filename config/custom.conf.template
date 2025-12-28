@@ -1,0 +1,103 @@
+#!/bin/bash
+# ============================================================================
+# Custom Configuration Template
+# ============================================================================
+# Copy this file to custom.conf and modify as needed.
+# Values here will override defaults from default.conf
+# ============================================================================
+
+# --- Quick Start Examples ---
+# Uncomment and modify the settings you want to change
+
+# --- User Configuration ---
+#ADMIN_USERNAME="johndoe"
+#CREATE_ADMIN_USER=true
+
+# --- SSH Configuration ---
+#SSH_PORT=2222
+#SSH_PASSWORD_AUTH="no"
+
+# --- Firewall Configuration ---
+#FIREWALL_TYPE="ufw"  # Options: ufw, firewalld, none
+#UFW_ALLOWED_PORTS="22/tcp,80/tcp,443/tcp,3000/tcp"
+
+# --- System Updates ---
+#PERFORM_UPDATES=true
+#ENABLE_UNATTENDED_UPGRADES=true
+#UNATTENDED_UPGRADES_AUTO_REBOOT=false
+
+# --- Security Tools ---
+#INSTALL_FAIL2BAN=true
+#FAIL2BAN_BAN_TIME=3600
+#INSTALL_AUDITD=true
+#INSTALL_RKHUNTER=true
+
+# --- Time Configuration ---
+#NTP_SERVICE="chrony"  # Options: chrony, systemd-timesyncd
+#TIMEZONE="America/New_York"
+
+# --- Hostname ---
+#HOSTNAME="my-server"
+#HOSTNAME_PREFIX="srv"
+
+# --- Advanced Options ---
+#DISABLE_USB_STORAGE=true
+#CONFIGURE_APPARMOR=true
+#SYSCTL_IP_FORWARDING=false
+
+# ============================================================================
+# Examples for Different Server Types
+# ============================================================================
+
+# --- Web Server Configuration ---
+#UFW_ALLOWED_PORTS="22/tcp,80/tcp,443/tcp"
+#FIREWALL_TYPE="ufw"
+
+# --- Database Server Configuration ---
+#UFW_ALLOWED_PORTS="22/tcp,3306/tcp,5432/tcp"
+
+# --- Development Server Configuration ---
+#UFW_ALLOWED_PORTS="22/tcp,80/tcp,443/tcp,3000/tcp,8000/tcp,8080/tcp"
+#INSTALL_DOCKER=true
+
+# --- High Security Configuration ---
+#SSH_PORT=2222
+#SSH_PASSWORD_AUTH="no"
+#FAIL2BAN_BAN_TIME=7200
+#FAIL2BAN_MAX_RETRY=3
+#DISABLE_USB_STORAGE=true
+#CONFIGURE_APPARMOR=true
+#SYSCTL_IP_FORWARDING=false
+
+# ============================================================================
+# Password Policy Examples
+# ============================================================================
+
+# --- Strict Password Policy ---
+#CONFIGURE_PASSWORD_POLICY=true
+#PASSWORD_MIN_LENGTH=16
+#PASSWORD_MIN_COMPLEXITY=4
+#PASSWORD_MAX_DAYS=60
+#PASSWORD_MIN_DAYS=1
+#PASSWORD_WARN_DAYS=14
+
+# --- Standard Password Policy ---
+#PASSWORD_MIN_LENGTH=12
+#PASSWORD_MAX_DAYS=90
+
+# ============================================================================
+# Non-Interactive Mode
+# ============================================================================
+# For automation/provisioning, set these values
+
+#INTERACTIVE=false
+#ADMIN_USERNAME="admin"
+#HOSTNAME="auto-server-01"
+#TIMEZONE="UTC"
+
+# ============================================================================
+# Dry Run Mode
+# ============================================================================
+# Test configuration without making changes
+
+#DRY_RUN=true
