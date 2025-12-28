@@ -1,10 +1,24 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
+![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
 
 **Modular, production-ready server hardening script for Debian/Ubuntu systems.**
+
+## 🖥️ Platform Support
+
+### Distributions
+- ✅ **Ubuntu**: 20.04 LTS, 22.04 LTS, 24.04 LTS
+- ✅ **Debian**: 11 (Bullseye), 12 (Bookworm)
+
+### Architectures
+- ✅ **AMD64/x86_64**: Fully supported (primary platform)
+- ✅ **ARM64/aarch64**: Fully supported (tested on Raspberry Pi 4, AWS Graviton)
+- ⚠️ **ARM32/armv7l**: Limited support (basic features)
+
+See [PLATFORM_COMPATIBILITY.md](PLATFORM_COMPATIBILITY.md) for detailed compatibility information.
 
 ## 🚀 Quick Start
 
