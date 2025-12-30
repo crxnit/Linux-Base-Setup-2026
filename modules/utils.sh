@@ -68,6 +68,79 @@ show_progress() {
     printf "    \r"
 }
 
+# --- Essential Tools Installation ---
+
+install_essential_tools() {
+    echo "Checking for essential tools..."
+    
+    local tools_to_install=()
+    local tools_installed=false
+    
+    # Check for sudo
+    if ! command -v sudo &> /dev/null; then
+        echo "[NOTICE] sudo not found - will install"
+        tools_to_install+=("sudo")
+    fi
+    
+    # Check for curl
+    if ! command -v curl &> /dev/null; then
+        echo "[NOTICE] curl not found - will install"
+        tools_to_install+=("curl")
+    fi
+    
+    # Check for vim (or install nano as alternative)
+    if ! command -v vim &> /dev/null && ! command -v nano &> /dev/null; then
+        echo "[NOTICE] No text editor found - will install vim"
+        tools_to_install+=("vim")
+    fi
+    
+    # Install missing tools
+    if [ ${#tools_to_install[@]} -gt 0 ]; then
+        echo "Installing essential tools: ${tools_to_install[*]}"
+        
+        # Update package lists first
+        apt-get update -qq || {
+            echo "ERROR: Failed to update package lists"
+            exit 1
+        }
+        
+        # Install each tool
+        for tool in "${tools_to_install[@]}"; do
+            echo "Installing $tool..."
+            if DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$tool"; then
+                echo "✓ Installed: $tool"
+                tools_installed=true
+            else
+                echo "ERROR: Failed to install $tool"
+                exit 1
+            fi
+        done
+        
+        # Configure sudo if it was just installed
+        if [[ " ${tools_to_install[*]} " =~ " sudo " ]]; then
+            echo "Configuring sudo..."
+            # Ensure sudo group exists
+            if ! getent group sudo > /dev/null 2>&1; then
+                groupadd sudo
+            fi
+            # Configure sudoers file
+            if [ -f /etc/sudoers ]; then
+                # Ensure sudo group has permissions
+                if ! grep -q "^%sudo" /etc/sudoers; then
+                    echo "%sudo   ALL=(ALL:ALL) ALL" >> /etc/sudoers
+                fi
+            fi
+            echo "✓ sudo configured"
+        fi
+        
+        echo "✓ All essential tools installed"
+    else
+        echo "✓ All essential tools already installed"
+    fi
+    
+    return 0
+}
+
 # --- Validation Functions ---
 
 is_root() {
@@ -76,7 +149,7 @@ is_root() {
 
 check_root() {
     if ! is_root; then
-        log_error "This script must be run as root or with sudo privileges"
+        echo -e "${RED}[ERROR]${NC} This script must be run as root or with sudo privileges"
         exit 1
     fi
 }
@@ -85,11 +158,121 @@ is_debian_based() {
     [[ -f /etc/debian_version ]]
 }
 
+get_distribution() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        echo "$ID"
+    else
+        echo "unknown"
+    fi
+}
+
+get_distribution_version() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        echo "$VERSION_ID"
+    else
+        echo "unknown"
+    fi
+}
+
+get_distribution_codename() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        echo "$VERSION_CODENAME"
+    else
+        echo "unknown"
+    fi
+}
+
+is_ubuntu() {
+    [[ "$(get_distribution)" == "ubuntu" ]]
+}
+
+is_debian() {
+    [[ "$(get_distribution)" == "debian" ]]
+}
+
+get_architecture() {
+    uname -m
+}
+
+is_arm() {
+    local arch
+    arch=$(get_architecture)
+    [[ "$arch" =~ ^(arm|aarch64)$ ]]
+}
+
+is_amd64() {
+    local arch
+    arch=$(get_architecture)
+    [[ "$arch" == "x86_64" ]]
+}
+
+is_arm64() {
+    [[ "$(get_architecture)" == "aarch64" ]]
+}
+
+is_arm32() {
+    local arch
+    arch=$(get_architecture)
+    [[ "$arch" =~ ^armv[67]l$ ]]
+}
+
 check_distribution() {
     if ! is_debian_based; then
         log_error "This script is designed for Debian/Ubuntu-based distributions"
         log_error "Detected: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
         exit 1
+    fi
+    
+    local distro
+    local version
+    local arch
+    
+    distro=$(get_distribution)
+    version=$(get_distribution_version)
+    arch=$(get_architecture)
+    
+    log_info "Distribution: $(echo "$distro" | tr '[:lower:]' '[:upper:]') $version"
+    log_info "Architecture: $arch"
+    
+    # Check for supported versions
+    if is_ubuntu; then
+        case "$version" in
+            20.04|22.04|24.04)
+                log_success "Ubuntu $version is supported"
+                ;;
+            *)
+                log_warning "Ubuntu $version may not be fully tested"
+                log_warning "Recommended versions: 20.04 LTS, 22.04 LTS, 24.04 LTS"
+                if [[ "$INTERACTIVE" == "true" ]]; then
+                    if ! prompt_yes_no "Continue anyway?" "y"; then
+                        exit 1
+                    fi
+                fi
+                ;;
+        esac
+    elif is_debian; then
+        case "$version" in
+            11|12)
+                log_success "Debian $version is supported"
+                ;;
+            *)
+                log_warning "Debian $version may not be fully tested"
+                log_warning "Recommended versions: 11 (Bullseye), 12 (Bookworm)"
+                if [[ "$INTERACTIVE" == "true" ]]; then
+                    if ! prompt_yes_no "Continue anyway?" "y"; then
+                        exit 1
+                    fi
+                fi
+                ;;
+        esac
+    fi
+    
+    # Architecture-specific warnings
+    if is_arm32; then
+        log_warning "32-bit ARM detected - some features may have limited support"
     fi
 }
 
@@ -280,6 +463,16 @@ package_installed() {
 
 install_package() {
     local package="$1"
+    local distro_specific="${2:-}"
+    
+    # Handle distribution-specific package names
+    if [[ -n "$distro_specific" ]]; then
+        if is_ubuntu && [[ "$distro_specific" == "ubuntu:"* ]]; then
+            package="${distro_specific#ubuntu:}"
+        elif is_debian && [[ "$distro_specific" == "debian:"* ]]; then
+            package="${distro_specific#debian:}"
+        fi
+    fi
     
     if package_installed "$package"; then
         log_info "Package already installed: $package"
@@ -292,6 +485,14 @@ install_package() {
     fi
     
     log_info "Installing package: $package"
+    
+    # Update package lists if they're stale (older than 1 day)
+    local apt_list="/var/lib/apt/lists"
+    if [[ ! -d "$apt_list" ]] || [[ $(find "$apt_list" -type f -mtime -1 | wc -l) -eq 0 ]]; then
+        log_info "Updating package lists..."
+        apt-get update -qq >> "$LOG_FILE" 2>&1 || log_warning "Failed to update package lists"
+    fi
+    
     if DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$package" >> "$LOG_FILE" 2>&1; then
         log_success "Installed: $package"
         return 0

@@ -2,6 +2,108 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2024-12-28
+
+### Added
+- **Essential Tools Check**: Automatic detection and installation of required tools
+  - Checks for `sudo`, `curl`, and `vim` (or `nano` as fallback)
+  - Installs missing tools automatically before main hardening process
+  - Configures sudo group and permissions if sudo was just installed
+  - Ensures all essential tools are available for script execution
+
+### Fixed
+- **Minimal Server Support**: Script now works on minimal/basic server installations
+  - No longer assumes sudo is pre-installed
+  - No longer assumes curl is available
+  - No longer assumes a text editor is present
+  - Resolves failures on fresh minimal Debian/Ubuntu installations
+
+### Changed
+- **Pre-flight Checks**: Enhanced to include essential tools installation
+  - Tools are checked and installed before distribution detection
+  - Clear messaging about which tools are being installed
+  - Proper error handling if installation fails
+
+## [2.1.0] - 2024-12-28
+
+### Added - Platform Compatibility
+- **Enhanced Distribution Detection**
+  - Automatic detection of Ubuntu vs Debian
+  - Version checking with warnings for unsupported versions
+  - Distribution-specific package handling
+  - Detailed platform information logging
+
+- **Architecture Support**
+  - Full AMD64/x86_64 support (primary platform)
+  - Full ARM64/aarch64 support (Raspberry Pi, AWS Graviton, etc.)
+  - Limited ARM32/armv7l support with appropriate warnings
+  - Architecture-specific kernel parameter optimization
+  - Architecture detection and validation
+
+- **Distribution-Specific Configurations**
+  - Ubuntu-specific unattended-upgrades origins (including ESM)
+  - Debian-specific unattended-upgrades origins
+  - Distribution-aware package installation
+  - Platform-specific repository handling
+
+- **Architecture-Specific Optimizations**
+  - AMD64: Full kernel hardening (exec-shield, kexec_load_disabled)
+  - ARM64: Optimized kernel parameters for ARM processors
+  - ARM32: Safe fallback configuration with warnings
+  - SSH host key generation adapted to architecture capabilities
+
+- **Documentation**
+  - New PLATFORM_COMPATIBILITY.md with comprehensive platform guide
+  - Support matrix showing feature availability by platform
+  - Known limitations documented
+  - Migration notes for different platforms
+  - Troubleshooting guide for platform-specific issues
+
+### Changed
+- **Distribution Detection**
+  - Enhanced `check_distribution()` function with version validation
+  - Added `get_distribution()`, `get_distribution_version()`, `get_distribution_codename()`
+  - Added `is_ubuntu()`, `is_debian()` helper functions
+
+- **Architecture Detection**
+  - Added `get_architecture()` function
+  - Added `is_arm()`, `is_amd64()`, `is_arm64()`, `is_arm32()` helper functions
+  - Architecture information included in all generated config files
+
+- **Package Installation**
+  - Updated `install_package()` to support distribution-specific package names
+  - Added automatic package list update if stale
+  - Better error handling for missing packages
+
+- **SSH Configuration**
+  - Dynamic host key generation based on architecture
+  - Architecture information added to SSH config comments
+  - Fallback to RSA if Ed25519 unavailable (older systems)
+
+- **Kernel Hardening**
+  - Architecture-specific sysctl parameters
+  - Conditional kernel hardening based on platform capabilities
+  - Warning messages for unsupported parameters on ARM32
+  - Architecture annotation in generated config files
+
+- **Unattended Upgrades**
+  - Separate configurations for Ubuntu vs Debian
+  - Distribution-appropriate security update sources
+  - Ubuntu ESM support for LTS versions
+  - Debian security repository handling
+
+### Improved
+- Pre-flight checks now display distribution and architecture
+- Better warning messages for untested platforms
+- Interactive prompts for unsupported versions
+- Graceful degradation on limited platforms (ARM32)
+
+### Fixed
+- Kernel parameters that don't exist on ARM failing silently
+- Package names that differ between Ubuntu and Debian
+- Unattended-upgrades configuration for Debian 12
+- SSH host key generation on systems without Ed25519 support
+
 ## [2.0.0] - 2024-12-28
 
 ### Major Rewrite
