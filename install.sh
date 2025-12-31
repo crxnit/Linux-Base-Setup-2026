@@ -1,16 +1,16 @@
 #!/bin/bash
 # ============================================================================
-# Linux Base Setup v2.0 - Quick Install
+# Linux Base Setup v2.1.1 - Quick Install
 # ============================================================================
 
 set -e
 
-REPO_URL="https://github.com/crxnit/linux-base-setup"
+REPO_URL="https://github.com/crxnit/Linux-Base-Setup-2026"
 INSTALL_DIR="/opt/linux-base-setup"
 TEMP_DIR=$(mktemp -d)
 
 echo "============================================"
-echo "  Linux Base Setup v2.0 - Quick Install"
+echo "  Linux Base Setup v2.1.1 - Quick Install"
 echo "============================================"
 echo ""
 
@@ -42,10 +42,16 @@ fi
 # Install to /opt
 echo "Installing to $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
-cp -r * "$INSTALL_DIR/"
+cp -r ./* "$INSTALL_DIR/"
+
+# Set proper permissions
 chmod +x "$INSTALL_DIR/harden.sh"
+chmod +x "$INSTALL_DIR/modules/"*.sh
+chmod 644 "$INSTALL_DIR/config/"*.conf
+chmod 644 "$INSTALL_DIR/config/"*.template
 
 # Create symlink
+echo "Creating command symlink..."
 ln -sf "$INSTALL_DIR/harden.sh" /usr/local/bin/harden
 
 # Cleanup
@@ -56,6 +62,12 @@ echo ""
 echo "============================================"
 echo "  Installation Complete!"
 echo "============================================"
+echo ""
+echo "Installation Details:"
+echo "  - Installation Directory: $INSTALL_DIR"
+echo "  - Command: harden (symlinked to /usr/local/bin/harden)"
+echo "  - Config Directory: $INSTALL_DIR/config/"
+echo "  - Modules Directory: $INSTALL_DIR/modules/"
 echo ""
 echo "Quick Start:"
 echo "  1. Review configuration:"

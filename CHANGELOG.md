@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.2] - 2024-12-30
+
+### Fixed
+- **Symlink Path Resolution**: Fixed critical bug where config and modules could not be found when running via symlink
+  - Script now properly resolves symlinks to find actual installation directory
+  - Works correctly when installed to `/opt/linux-base-setup` and called via `/usr/local/bin/harden`
+  - Searches multiple standard locations for config and modules directories
+  - Provides clear error messages showing all attempted paths if files not found
+
+### Changed
+- **Path Resolution**: Enhanced directory detection with multiple fallback locations
+  - Config locations: `$SCRIPT_DIR/config`, `/opt/linux-base-setup/config`, `/etc/linux-base-setup`
+  - Module locations: `$SCRIPT_DIR/modules`, `/opt/linux-base-setup/modules`, `/usr/local/share/linux-base-setup/modules`
+  - Automatic detection of correct paths regardless of installation method
+  
+- **install.sh**: Improved installation script
+  - Updated to v2.1.2
+  - Sets proper file permissions on all installed files
+  - Better output showing installation details
+  - Shows all relevant paths after installation
+
+### Improved
+- **Error Messages**: Path-not-found errors now show all locations that were searched
+- **Help Output**: Final summary now shows actual config and module directories being used
+
 ## [2.1.1] - 2024-12-28
 
 ### Added
