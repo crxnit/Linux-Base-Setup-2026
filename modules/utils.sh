@@ -72,38 +72,44 @@ show_progress() {
 
 install_essential_tools() {
     echo "Checking for essential tools..."
-    
+
     local tools_to_install=()
     local tools_installed=false
-    
+
     # Check for sudo
     if ! command -v sudo &> /dev/null; then
         echo "[NOTICE] sudo not found - will install"
         tools_to_install+=("sudo")
     fi
-    
+
     # Check for curl
     if ! command -v curl &> /dev/null; then
         echo "[NOTICE] curl not found - will install"
         tools_to_install+=("curl")
     fi
-    
+
     # Check for vim (or install nano as alternative)
     if ! command -v vim &> /dev/null && ! command -v nano &> /dev/null; then
         echo "[NOTICE] No text editor found - will install vim"
         tools_to_install+=("vim")
     fi
-    
+
     # Install missing tools
     if [ ${#tools_to_install[@]} -gt 0 ]; then
+        # In dry-run mode, just report what would be installed
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo "[DRY-RUN] Would install essential tools: ${tools_to_install[*]}"
+            return 0
+        fi
+
         echo "Installing essential tools: ${tools_to_install[*]}"
-        
+
         # Update package lists first
         apt-get update -qq || {
             echo "ERROR: Failed to update package lists"
             exit 1
         }
-        
+
         # Install each tool
         for tool in "${tools_to_install[@]}"; do
             echo "Installing $tool..."
@@ -115,7 +121,7 @@ install_essential_tools() {
                 exit 1
             fi
         done
-        
+
         # Configure sudo if it was just installed
         if [[ " ${tools_to_install[*]} " =~ " sudo " ]]; then
             echo "Configuring sudo..."
@@ -132,12 +138,12 @@ install_essential_tools() {
             fi
             echo "✓ sudo configured"
         fi
-        
+
         echo "✓ All essential tools installed"
     else
         echo "✓ All essential tools already installed"
     fi
-    
+
     return 0
 }
 

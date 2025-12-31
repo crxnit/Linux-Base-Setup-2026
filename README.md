@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.1.2-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.3-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -24,8 +24,8 @@ See [PLATFORM_COMPATIBILITY.md](PLATFORM_COMPATIBILITY.md) for detailed compatib
 
 ```bash
 # Clone the repository
-git clone https://github.com/crxnit/linux-base-setup.git
-cd linux-base-setup
+git clone https://github.com/crxnit/Linux-Base-Setup-2026.git
+cd Linux-Base-Setup-2026
 
 # Preview changes (dry run)
 sudo ./harden.sh --dry-run
@@ -400,9 +400,9 @@ MIT License - see LICENSE file for details
 
 ## 📞 Support
 
-- **Issues**: https://github.com/crxnit/linux-base-setup/issues
-- **Discussions**: https://github.com/crxnit/linux-base-setup/discussions
-- **Documentation**: https://github.com/crxnit/linux-base-setup/wiki
+- **Issues**: https://github.com/crxnit/Linux-Base-Setup-2026/issues
+- **Discussions**: https://github.com/crxnit/Linux-Base-Setup-2026/discussions
+- **Documentation**: https://github.com/crxnit/Linux-Base-Setup-2026/wiki
 
 ## 🔖 Version History
 

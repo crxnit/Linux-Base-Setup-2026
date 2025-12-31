@@ -1,16 +1,16 @@
 #!/bin/bash
 # ============================================================================
-# Linux Base Setup v2.1.1 - Quick Install
+# Linux Base Setup - Quick Install
 # ============================================================================
 
 set -e
 
-REPO_URL="https://github.com/crxnit/Linux-Base-Setup-2026"
+REPO_URL="https://github.com/crxnit/Linux-Base-Setup-2026.git"
 INSTALL_DIR="/opt/linux-base-setup"
 TEMP_DIR=$(mktemp -d)
 
 echo "============================================"
-echo "  Linux Base Setup v2.1.1 - Quick Install"
+echo "  Linux Base Setup - Quick Install"
 echo "============================================"
 echo ""
 
