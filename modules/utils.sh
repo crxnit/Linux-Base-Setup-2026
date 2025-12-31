@@ -311,17 +311,18 @@ validate_email() {
 backup_file() {
     local file="$1"
     local backup_path="${BACKUP_DIR}/$(basename "$file").$(date +%Y%m%d_%H%M%S)"
-    
+
+    # File not existing is not an error - just skip backup
     if [[ ! -f "$file" ]]; then
-        log_warning "File $file does not exist, skipping backup"
-        return 1
+        log_info "File $file does not exist, skipping backup"
+        return 0
     fi
-    
+
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "[DRY-RUN] Would backup: $file -> $backup_path"
         return 0
     fi
-    
+
     mkdir -p "$BACKUP_DIR"
     if cp -a "$file" "$backup_path"; then
         log_success "Backed up: $file -> $backup_path"

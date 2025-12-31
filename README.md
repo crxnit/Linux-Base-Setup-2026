@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.1.3-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.4-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -21,6 +21,20 @@
 See [PLATFORM_COMPATIBILITY.md](PLATFORM_COMPATIBILITY.md) for detailed compatibility information.
 
 ## 🚀 Quick Start
+
+### One-Line Install (Recommended)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/crxnit/Linux-Base-Setup-2026/main/install.sh | sudo bash
+```
+
+After installation, run from anywhere:
+```bash
+sudo harden --dry-run    # Preview changes
+sudo harden              # Run hardening
+```
+
+### Manual Install
 
 ```bash
 # Clone the repository
@@ -414,7 +428,14 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.1.3 (Current)
+### v2.1.4 (Current)
+- Moved root check to run before banner display
+- Fixed backup warnings for files that don't exist yet
+- Fixed fail2ban-client status causing script exit
+- Removed dist-upgrade prompt (now config-driven)
+- Added one-line install instructions to README
+
+### v2.1.3
 - Fixed dry-run mode exiting on missing directories
 - Fixed repository URLs in install.sh and documentation
 - Improved dry-run handling for essential tools installation

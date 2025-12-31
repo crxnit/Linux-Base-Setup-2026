@@ -19,13 +19,14 @@ configure_fail2ban() {
     install_package "fail2ban"
     
     local jail_local="/etc/fail2ban/jail.local"
-    
+
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "[DRY-RUN] Would configure Fail2Ban"
         return 0
     fi
-    
-    backup_file "$jail_local" 2>/dev/null || true
+
+    # Only backup if file already exists
+    [[ -f "$jail_local" ]] && backup_file "$jail_local"
     
     # Create jail.local configuration
     cat > "$jail_local" <<EOF
@@ -89,13 +90,18 @@ EOF
     
     # Enable and start fail2ban
     enable_service "fail2ban"
-    start_service "fail2ban"
-    
-    # Display status
-    sleep 2
-    log_success "Fail2Ban configured and running"
-    fail2ban-client status | tee -a "$LOG_FILE"
-    
+    restart_service "fail2ban"
+
+    log_success "Fail2Ban configured"
+
+    # Display status (non-fatal if service is still starting)
+    sleep 3
+    if fail2ban-client status >> "$LOG_FILE" 2>&1; then
+        log_info "Fail2Ban is running"
+    else
+        log_warning "Fail2Ban may still be starting. Check status with: fail2ban-client status"
+    fi
+
     return 0
 }
 
@@ -119,13 +125,14 @@ configure_auditd() {
     fi
     
     local audit_rules="/etc/audit/rules.d/hardening.rules"
-    
+
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "[DRY-RUN] Would configure Auditd rules"
         return 0
     fi
-    
-    backup_file "$audit_rules" 2>/dev/null || true
+
+    # Only backup if file already exists
+    [[ -f "$audit_rules" ]] && backup_file "$audit_rules"
     
     # Create audit rules
     cat > "$audit_rules" <<'EOF'

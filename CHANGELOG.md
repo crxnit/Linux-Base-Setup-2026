@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.4] - 2024-12-30
+
+### Fixed
+- **Root Check**: Moved root privilege check to run immediately, before banner display
+- **Backup Warnings**: Fixed spurious "File does not exist" warnings for files created fresh
+  - Only attempt backup if file already exists (jail.local, audit_rules, pwquality.conf, etc.)
+  - Moved backup calls after dry-run checks where appropriate
+- **Fail2Ban**: Fixed script exit when fail2ban-client status fails during startup
+  - Made status check non-fatal with graceful warning
+  - Changed start_service to restart_service for config reload
+  - Increased startup wait time
+
+### Changed
+- **Dist-Upgrade**: Removed interactive prompt for dist-upgrade
+  - Added `PERFORM_DIST_UPGRADE=false` config option (disabled by default)
+  - Dist-upgrade only runs when explicitly enabled in config
+- **README**: Added one-line install instructions to Quick Start section
+
+### Improved
+- Better error handling throughout backup and service operations
+- More consistent dry-run behavior across all modules
+
 ## [2.1.3] - 2024-12-30
 
 ### Fixed

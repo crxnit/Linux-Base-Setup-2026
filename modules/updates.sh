@@ -37,9 +37,9 @@ perform_system_updates() {
         return 1
     fi
     
-    # Full upgrade (dist-upgrade)
-    if prompt_yes_no "Perform full system upgrade (dist-upgrade)?" "y"; then
-        log_info "Performing full system upgrade"
+    # Full upgrade (dist-upgrade) - only if explicitly enabled in config
+    if [[ "$PERFORM_DIST_UPGRADE" == "true" ]]; then
+        log_info "Performing full system upgrade (dist-upgrade)"
         if DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y >> "$LOG_FILE" 2>&1; then
             log_success "Full system upgrade complete"
         else
@@ -78,8 +78,9 @@ configure_unattended_upgrades() {
         log_info "[DRY-RUN] Would configure unattended upgrades"
         return 0
     fi
-    
-    backup_file "$ua_conf"
+
+    # Only backup if file already exists
+    [[ -f "$ua_conf" ]] && backup_file "$ua_conf"
     
     # Distribution-specific origins
     local distro
@@ -209,7 +210,7 @@ configure_chrony() {
     fi
     
     local chrony_conf="/etc/chrony/chrony.conf"
-    backup_file "$chrony_conf"
+    [[ -f "$chrony_conf" ]] && backup_file "$chrony_conf"
     
     # Configure chrony with better NTP servers
     cat > "$chrony_conf" <<EOF
@@ -265,7 +266,7 @@ configure_systemd_timesyncd() {
     fi
     
     local timesyncd_conf="/etc/systemd/timesyncd.conf"
-    backup_file "$timesyncd_conf"
+    [[ -f "$timesyncd_conf" ]] && backup_file "$timesyncd_conf"
     
     cat > "$timesyncd_conf" <<EOF
 # systemd-timesyncd configuration

@@ -183,17 +183,19 @@ configure_password_policy() {
     fi
     
     log_info "Configuring password policies"
-    
+
     # Install libpam-pwquality
     install_package "libpam-pwquality"
-    
+
     local pwquality_conf="/etc/security/pwquality.conf"
-    backup_file "$pwquality_conf"
-    
+
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "[DRY-RUN] Would configure password quality requirements"
         return 0
     fi
+
+    # Only backup if file already exists
+    [[ -f "$pwquality_conf" ]] && backup_file "$pwquality_conf"
     
     # Configure password quality
     cat > "$pwquality_conf" <<EOF
