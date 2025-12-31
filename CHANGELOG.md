@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.5] - 2024-12-30
+
+### Fixed
+- **Root Check**: Moved root check earlier, before any directory operations
+  - Prevents confusing "mkdir: Permission denied" errors
+  - User now sees clear "must be run as root" message immediately
+- **Fail2Ban**: Fixed service failing to start on Debian 12 and Ubuntu 22.04+
+  - Removed non-existent `sshd-ddos` filter that caused startup failure
+  - Changed action from `action_mwl` (requires mail) to `action_` (basic ban)
+  - Added `backend = auto` for systemd compatibility
+  - Simplified sshd jail configuration
+  - Added configuration test (`fail2ban-client -t`) before restart
+  - Increased service startup wait time
+- **RKHunter**: Made database update and baseline commands non-fatal
+  - Network issues during `rkhunter --update` no longer crash script
+  - Shows warning with manual command if update fails
+
 ## [2.1.4] - 2024-12-30
 
 ### Fixed

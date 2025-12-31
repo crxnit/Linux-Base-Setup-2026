@@ -28,6 +28,13 @@ configure_fail2ban() {
     # Only backup if file already exists
     [[ -f "$jail_local" ]] && backup_file "$jail_local"
     
+    # Determine log path based on distribution
+    local auth_log="/var/log/auth.log"
+    if [[ ! -f "$auth_log" ]]; then
+        # Fallback for systems using systemd journal
+        auth_log="%(sshd_log)s"
+    fi
+
     # Create jail.local configuration
     cat > "$jail_local" <<EOF
 # Fail2Ban configuration
@@ -39,67 +46,42 @@ bantime = $FAIL2BAN_BAN_TIME
 findtime = $FAIL2BAN_FIND_TIME
 maxretry = $FAIL2BAN_MAX_RETRY
 
-# Destination email
-destemail = root@localhost
-sender = fail2ban@$(hostname -f)
-mta = sendmail
-
-# Action
-action = %(action_mwl)s
+# Action - use basic action (ban only, no mail)
+action = %(action_)s
 
 # Ignore local connections
 ignoreip = 127.0.0.1/8 ::1
 
+# Backend - auto-detect (systemd or polling)
+backend = auto
+
 [sshd]
 enabled = true
 port = $SSH_PORT
-filter = sshd
-logpath = /var/log/auth.log
 maxretry = $FAIL2BAN_MAX_RETRY
 bantime = $FAIL2BAN_BAN_TIME
-
-[sshd-ddos]
-enabled = true
-port = $SSH_PORT
-filter = sshd-ddos
-logpath = /var/log/auth.log
-maxretry = 2
-bantime = 3600
-
-# Additional jails (uncomment as needed)
-
-#[apache-auth]
-#enabled = true
-#port = http,https
-#filter = apache-auth
-#logpath = /var/log/apache*/*error.log
-#maxretry = 3
-
-#[nginx-http-auth]
-#enabled = true
-#filter = nginx-http-auth
-#port = http,https
-#logpath = /var/log/nginx/error.log
-
-#[postfix]
-#enabled = true
-#port = smtp,ssmtp,submission
-#filter = postfix
-#logpath = /var/log/mail.log
 EOF
-    
+
+    # Verify configuration is valid
+    log_info "Verifying Fail2Ban configuration"
+    if ! fail2ban-client -t >> "$LOG_FILE" 2>&1; then
+        log_error "Fail2Ban configuration test failed. Check $LOG_FILE for details"
+        return 1
+    fi
+
     # Enable and start fail2ban
     enable_service "fail2ban"
     restart_service "fail2ban"
 
     log_success "Fail2Ban configured"
 
-    # Display status (non-fatal if service is still starting)
-    sleep 3
+    # Display status (wait a bit longer for service to fully start)
+    sleep 5
     if fail2ban-client status >> "$LOG_FILE" 2>&1; then
         log_info "Fail2Ban is running"
+        fail2ban-client status sshd >> "$LOG_FILE" 2>&1 || true
     else
-        log_warning "Fail2Ban may still be starting. Check status with: fail2ban-client status"
+        log_warning "Fail2Ban service may need manual verification. Check: systemctl status fail2ban"
     fi
 
     return 0
@@ -251,21 +233,31 @@ install_rkhunter() {
         return 0
     fi
     
-    # Update rkhunter database
+    # Update rkhunter database (non-fatal if update fails)
     log_info "Updating RKHunter database"
-    rkhunter --update >> "$LOG_FILE" 2>&1
-    
-    # Set baseline
+    if rkhunter --update >> "$LOG_FILE" 2>&1; then
+        log_success "RKHunter database updated"
+    else
+        log_warning "RKHunter database update failed (may be network issue). Run manually: rkhunter --update"
+    fi
+
+    # Set baseline (non-fatal if fails)
     log_info "Setting RKHunter baseline"
-    rkhunter --propupd >> "$LOG_FILE" 2>&1
-    
+    if rkhunter --propupd >> "$LOG_FILE" 2>&1; then
+        log_success "RKHunter baseline set"
+    else
+        log_warning "RKHunter baseline failed. Run manually: rkhunter --propupd"
+    fi
+
     # Configure email alerts (if desired)
     local rkhunter_conf="/etc/rkhunter.conf"
-    backup_file "$rkhunter_conf"
-    
-    sed -i 's/^#MAIL-ON-WARNING=.*/MAIL-ON-WARNING=root@localhost/' "$rkhunter_conf"
-    sed -i 's/^#MAIL_CMD=.*/MAIL_CMD=mail -s "[rkhunter] Warnings found for ${HOST_NAME}"/' "$rkhunter_conf"
-    
+    [[ -f "$rkhunter_conf" ]] && backup_file "$rkhunter_conf"
+
+    if [[ -f "$rkhunter_conf" ]]; then
+        sed -i 's/^#MAIL-ON-WARNING=.*/MAIL-ON-WARNING=root@localhost/' "$rkhunter_conf"
+        sed -i 's/^#MAIL_CMD=.*/MAIL_CMD=mail -s "[rkhunter] Warnings found for ${HOST_NAME}"/' "$rkhunter_conf"
+    fi
+
     log_success "RKHunter installed and configured"
     log_info "Run 'rkhunter --check' to perform manual scans"
     

@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.1.4-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.5-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -428,7 +428,12 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.1.4 (Current)
+### v2.1.5 (Current)
+- Fixed root check to run before any directory operations
+- Fixed Fail2Ban failing to start on Debian 12/Ubuntu 22.04+
+- Made RKHunter database update non-fatal
+
+### v2.1.4
 - Moved root check to run before banner display
 - Fixed backup warnings for files that don't exist yet
 - Fixed fail2ban-client status causing script exit
