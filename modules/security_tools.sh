@@ -28,11 +28,13 @@ configure_fail2ban() {
     # Only backup if file already exists
     [[ -f "$jail_local" ]] && backup_file "$jail_local"
     
-    # Determine log path based on distribution
-    local auth_log="/var/log/auth.log"
-    if [[ ! -f "$auth_log" ]]; then
-        # Fallback for systems using systemd journal
-        auth_log="%(sshd_log)s"
+    # Determine backend based on system configuration
+    local f2b_backend="auto"
+
+    # On systemd systems without /var/log/auth.log, use systemd backend
+    if [[ -d /run/systemd/system ]] && [[ ! -f /var/log/auth.log ]]; then
+        f2b_backend="systemd"
+        log_info "Using systemd backend for Fail2Ban (no auth.log found)"
     fi
 
     # Create jail.local configuration
@@ -52,12 +54,10 @@ action = %(action_)s
 # Ignore local connections
 ignoreip = 127.0.0.1/8 ::1
 
-# Backend - auto-detect (systemd or polling)
-backend = auto
-
 [sshd]
 enabled = true
 port = $SSH_PORT
+backend = $f2b_backend
 maxretry = $FAIL2BAN_MAX_RETRY
 bantime = $FAIL2BAN_BAN_TIME
 EOF
@@ -66,19 +66,20 @@ EOF
     log_info "Verifying Fail2Ban configuration"
     if ! fail2ban-client -t >> "$LOG_FILE" 2>&1; then
         log_error "Fail2Ban configuration test failed. Check $LOG_FILE for details"
+        log_warning "Fail2Ban will need manual configuration"
         return 1
     fi
 
     # Enable and start fail2ban
     enable_service "fail2ban"
-    restart_service "fail2ban"
-
-    log_success "Fail2Ban configured"
+    if ! restart_service "fail2ban"; then
+        log_warning "Fail2Ban service restart had issues"
+    fi
 
     # Display status (wait a bit longer for service to fully start)
     sleep 5
     if fail2ban-client status >> "$LOG_FILE" 2>&1; then
-        log_info "Fail2Ban is running"
+        log_success "Fail2Ban configured and running"
         fail2ban-client status sshd >> "$LOG_FILE" 2>&1 || true
     else
         log_warning "Fail2Ban service may need manual verification. Check: systemctl status fail2ban"

@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.6] - 2024-12-30
+
+### Changed
+- **Error Handling**: Script now continues on component failures instead of exiting
+  - Removed `set -e` to allow script to continue after errors
+  - Added `run_step()` wrapper function to track failures
+  - Failed components are logged and reported at the end
+  - Summary section shows all components that encountered errors
+  - Users can review log file for details on failures
+
+### Fixed
+- **Fail2Ban**: Fixed "Have not found any log file for sshd jail" error
+  - Detects systemd systems without /var/log/auth.log
+  - Explicitly sets `backend = systemd` for sshd jail when needed
+  - Made service restart failures non-fatal
+
+### Improved
+- Script resilience - hardening continues even if individual components fail
+- Better error reporting with summary at end of execution
+- Each step clearly identified in output for easier troubleshooting
+
 ## [2.1.5] - 2024-12-30
 
 ### Fixed

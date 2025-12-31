@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.1.5-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.6-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -428,7 +428,12 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.1.5 (Current)
+### v2.1.6 (Current)
+- Script now continues on component failures instead of exiting
+- Added failure tracking and summary report at end
+- Fixed Fail2Ban "no log file found" error on fresh installs
+
+### v2.1.5
 - Fixed root check to run before any directory operations
 - Fixed Fail2Ban failing to start on Debian 12/Ubuntu 22.04+
 - Made RKHunter database update non-fatal
