@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.3] - 2024-12-30
+
+### Fixed
+- **Dry-Run Mode**: Fixed script exiting when log/backup directories don't exist
+  - Deferred log/backup directory creation until after argument parsing
+  - `LOG_FILE` now set to `/dev/null` in dry-run mode (no files created)
+  - Added dry-run handling to `install_essential_tools()` function
+  - Added dry-run handling to `generate_completion_report()` function
+  - Dry-run now works correctly on fresh systems without creating any files
+
+- **Repository URLs**: Fixed incorrect URLs causing 404 errors
+  - Fixed `REPO_URL` in `install.sh` to use correct repository name
+  - Fixed git clone URL in README.md
+  - Fixed all support/issues/wiki links in README.md
+  - Fixed URLs in QUICK_REFERENCE.md
+
+### Changed
+- **install.sh**: Removed hardcoded version numbers from banners
+- **Documentation**: Updated README.md and QUICK_REFERENCE.md with latest changes
+
 ## [2.1.2] - 2024-12-30
 
 ### Fixed

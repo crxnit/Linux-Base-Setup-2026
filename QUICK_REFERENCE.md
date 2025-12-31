@@ -1,15 +1,25 @@
 # Quick Reference Guide
 
+**Linux Base Setup v2.1.3**
+
 ## Installation
 
 ```bash
 # One-line install
-curl -sSL https://raw.githubusercontent.com/crxnit/linux-base-setup/main/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/crxnit/Linux-Base-Setup-2026/main/install.sh | sudo bash
 
 # Manual install
-git clone https://github.com/crxnit/linux-base-setup
-cd linux-base-setup
+git clone https://github.com/crxnit/Linux-Base-Setup-2026.git
+cd Linux-Base-Setup-2026
 sudo ./harden.sh
+```
+
+## After Installation (if using install.sh)
+
+```bash
+# Run from anywhere using the harden command
+sudo harden --dry-run    # Preview changes
+sudo harden              # Run hardening
 ```
 
 ## Common Commands
@@ -277,6 +287,12 @@ After running the script, verify:
 ## Support
 
 - Documentation: `/opt/linux-base-setup/README.md`
-- Issues: https://github.com/crxnit/linux-base-setup/issues
+- Issues: https://github.com/crxnit/Linux-Base-Setup-2026/issues
 - Logs: `/var/log/hardening/`
 - Backups: `/var/backups/hardening-*/`
+
+## Version
+
+Current: **v2.1.3**
+
+See [CHANGELOG.md](CHANGELOG.md) for full version history.

@@ -39,8 +39,16 @@ nano config/custom.conf
 sudo ./harden.sh --config config/custom.conf
 ```
 
-## ✨ What's New in v2.0
+## ✨ What's New
 
+### v2.1.x Improvements
+- **Multi-Architecture Support**: Full support for AMD64, ARM64, and ARM32
+- **Platform Detection**: Automatic distribution and architecture detection
+- **Essential Tools Auto-Install**: Automatically installs sudo, curl, vim on minimal systems
+- **Improved Dry-Run Mode**: No files created during preview, works on fresh systems
+- **Symlink Support**: Works correctly when installed via `/usr/local/bin/harden`
+
+### v2.0 Features
 - **Modular Architecture**: Clean separation of concerns with dedicated modules
 - **Configuration Files**: Manage settings without editing scripts
 - **Dry-Run Mode**: Preview all changes before applying
@@ -406,7 +414,25 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.0.0 (Current)
+### v2.1.3 (Current)
+- Fixed dry-run mode exiting on missing directories
+- Fixed repository URLs in install.sh and documentation
+- Improved dry-run handling for essential tools installation
+
+### v2.1.2
+- Fixed symlink path resolution for installed command
+- Works correctly when called via `/usr/local/bin/harden`
+
+### v2.1.1
+- Added essential tools auto-installation (sudo, curl, vim)
+- Works on minimal server installations
+
+### v2.1.0
+- Multi-architecture support (AMD64, ARM64, ARM32)
+- Distribution-specific configurations
+- Enhanced platform detection and validation
+
+### v2.0.0
 - Complete modular rewrite
 - Configuration file support
 - Dry-run mode
