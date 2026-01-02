@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2025-01-02
+
+### Changed
+- **CrowdSec Integration**: Replaced Fail2Ban with CrowdSec for modern intrusion prevention
+  - CrowdSec provides collaborative, crowd-sourced threat intelligence
+  - Automatic IP reputation checking against global blocklists
+  - Real-time threat detection and response
+  - Lower false positive rates through community validation
+
+### Added
+- **CrowdSec Features**:
+  - Automatic repository setup and installation
+  - SSH collection (`crowdsecurity/sshd`) for SSH attack detection
+  - Linux collection (`crowdsecurity/linux`) for general Linux threats
+  - Firewall bouncer support (iptables and nftables)
+  - Optional CrowdSec Console enrollment for centralized management
+  - Automatic systemd/auth.log detection for SSH log acquisition
+  - Custom SSH port configuration support
+
+- **New Configuration Options**:
+  - `INSTALL_CROWDSEC` - Enable/disable CrowdSec installation
+  - `CROWDSEC_INSTALL_BOUNCER` - Install firewall bouncer
+  - `CROWDSEC_BOUNCER_TYPE` - Choose iptables or nftables
+  - `CROWDSEC_COLLECTIONS` - Comma-separated list of collections to install
+  - `CROWDSEC_ENROLL` - Enable Console enrollment
+  - `CROWDSEC_ENROLL_KEY` - CrowdSec Console enrollment key
+
+### Removed
+- Fail2Ban installation and configuration
+- `INSTALL_FAIL2BAN`, `FAIL2BAN_MAX_RETRY`, `FAIL2BAN_BAN_TIME`, `FAIL2BAN_FIND_TIME` options
+- `--skip-fail2ban` command-line flag (replaced with `--skip-crowdsec`)
+
+### Updated
+- Documentation updated with CrowdSec commands and configuration
+- README.md, QUICK_REFERENCE.md updated for v2.2.0
+- Version banners and references updated
+
 ## [2.1.6] - 2024-12-30
 
 ### Changed

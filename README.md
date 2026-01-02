@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.1.6-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -70,7 +70,7 @@ sudo ./harden.sh --config config/custom.conf
 - **Enhanced Logging**: Detailed, color-coded logging with timestamps
 - **Progress Indicators**: Visual feedback for long-running operations
 - **Non-Interactive Mode**: Full automation support for provisioning
-- **Modern Security**: Updated SSH ciphers, fail2ban, AppArmor, and more
+- **Modern Security**: Updated SSH ciphers, CrowdSec, AppArmor, and more
 - **Comprehensive Testing**: Pre-flight checks and validation
 
 ## 📋 Features
@@ -103,7 +103,7 @@ sudo ./harden.sh --config config/custom.conf
   - Umask configuration
 
 ### Security Tools
-- 🛡️ **Fail2Ban**: Intrusion prevention with custom SSH rules
+- 🛡️ **CrowdSec**: Modern, collaborative intrusion prevention with real-time threat intelligence
 - 📊 **Auditd**: Comprehensive file integrity and system call auditing
 - 🔍 **RKHunter**: Rootkit detection
 - 🔐 **Lynis**: Security auditing (optional)
@@ -168,7 +168,7 @@ sudo ./harden.sh --config config/custom.conf
 | `SSH_PORT` | 2222 | Custom SSH port |
 | `SSH_PASSWORD_AUTH` | no | Allow password authentication |
 | `FIREWALL_TYPE` | ufw | Firewall type (ufw/firewalld/none) |
-| `INSTALL_FAIL2BAN` | true | Install and configure Fail2Ban |
+| `INSTALL_CROWDSEC` | true | Install and configure CrowdSec |
 | `INSTALL_AUDITD` | true | Install and configure Auditd |
 | `ENABLE_UNATTENDED_UPGRADES` | true | Enable automatic security updates |
 | `NTP_SERVICE` | chrony | NTP service (chrony/systemd-timesyncd) |
@@ -213,7 +213,7 @@ Shows what would be changed without applying modifications.
 sudo ./harden.sh --skip-updates --skip-firewall
 
 # Skip security tools
-sudo ./harden.sh --skip-fail2ban --skip-auditd
+sudo ./harden.sh --skip-crowdsec --skip-auditd
 ```
 
 ### Custom Configuration
@@ -233,7 +233,7 @@ sudo ./harden.sh --config config/custom.conf --dry-run
 CONFIGURE_SSH=true
 SSH_PORT=2222
 CONFIGURE_FIREWALL=true
-INSTALL_FAIL2BAN=true
+INSTALL_CROWDSEC=true
 CONFIGURE_SYSCTL=true
 ```
 
@@ -254,8 +254,8 @@ SSH_PASSWORD_AUTH="no"
 CONFIGURE_APPARMOR=true
 DISABLE_USB_STORAGE=true
 PASSWORD_MIN_LENGTH=16
-FAIL2BAN_BAN_TIME=7200
-FAIL2BAN_MAX_RETRY=3
+CROWDSEC_ENROLL=true              # Enroll in CrowdSec Console for shared threat intelligence
+CROWDSEC_ENROLL_KEY="your-key"    # Get from app.crowdsec.net
 # Enable 2FA during interactive setup
 ```
 
@@ -265,7 +265,7 @@ FAIL2BAN_MAX_RETRY=3
 ```bash
 UFW_ALLOWED_PORTS="22/tcp,80/tcp,443/tcp"
 FIREWALL_TYPE="ufw"
-INSTALL_FAIL2BAN=true
+INSTALL_CROWDSEC=true
 ENABLE_UNATTENDED_UPGRADES=true
 ```
 
@@ -332,9 +332,10 @@ ssh -p <NEW_PORT> <ADMIN_USER>@<SERVER_IP>
 ### Monitoring Commands
 
 ```bash
-# View fail2ban status
-sudo fail2ban-client status
-sudo fail2ban-client status sshd
+# View CrowdSec status
+sudo cscli metrics
+sudo cscli decisions list
+sudo cscli alerts list
 
 # View auditd logs
 sudo ausearch -k identity
@@ -428,7 +429,16 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.1.6 (Current)
+### v2.2.0 (Current)
+- **CrowdSec Integration**: Replaced Fail2Ban with CrowdSec for modern intrusion prevention
+  - Collaborative threat intelligence from global community
+  - Automatic IP reputation checking
+  - Support for iptables and nftables bouncers
+  - Optional CrowdSec Console enrollment
+- Updated configuration options for CrowdSec
+- Updated documentation and examples
+
+### v2.1.6
 - Script now continues on component failures instead of exiting
 - Added failure tracking and summary report at end
 - Fixed Fail2Ban "no log file found" error on fresh installs

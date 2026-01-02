@@ -1,6 +1,6 @@
 # Quick Reference Guide
 
-**Linux Base Setup v2.1.6**
+**Linux Base Setup v2.2.0**
 
 ## Installation
 
@@ -54,7 +54,7 @@ sudo ./harden.sh --verbose
 ADMIN_USERNAME="webadmin"
 SSH_PORT=2222
 UFW_ALLOWED_PORTS="22/tcp,80/tcp,443/tcp"
-INSTALL_FAIL2BAN=true
+INSTALL_CROWDSEC=true
 ENABLE_UNATTENDED_UPGRADES=true
 ```
 
@@ -75,8 +75,8 @@ SSH_PORT=2222
 SSH_PASSWORD_AUTH="no"
 DISABLE_USB_STORAGE=true
 CONFIGURE_APPARMOR=true
-FAIL2BAN_BAN_TIME=7200
-FAIL2BAN_MAX_RETRY=3
+CROWDSEC_ENROLL=true
+CROWDSEC_ENROLL_KEY="your-key"
 PASSWORD_MIN_LENGTH=16
 ```
 
@@ -96,7 +96,7 @@ sudo ufw status verbose
 ### 3. Check Services
 ```bash
 sudo systemctl status sshd
-sudo systemctl status fail2ban
+sudo systemctl status crowdsec
 sudo systemctl status auditd
 ```
 
@@ -122,11 +122,12 @@ sudo cp /var/backups/hardening-*/sshd_config /etc/ssh/sshd_config
 sudo systemctl restart sshd
 ```
 
-### View Fail2Ban Status
+### View CrowdSec Status
 ```bash
-sudo fail2ban-client status
-sudo fail2ban-client status sshd
-sudo fail2ban-client unban <IP>
+sudo cscli metrics
+sudo cscli decisions list
+sudo cscli alerts list
+sudo cscli decisions delete --ip <IP>  # Unban IP
 ```
 
 ### Auditd Reports
@@ -208,7 +209,7 @@ FIREWALL_TYPE="ufw"
 UFW_ALLOWED_PORTS="22/tcp,80/tcp,443/tcp"
 
 # Security
-INSTALL_FAIL2BAN=true
+INSTALL_CROWDSEC=true
 INSTALL_AUDITD=true
 INSTALL_RKHUNTER=true
 
@@ -229,7 +230,7 @@ TIMEZONE="America/New_York"
 4. ✅ Review logs after completion
 5. ✅ Run security audit periodically
 6. ✅ Update system regularly
-7. ✅ Monitor fail2ban and auditd logs
+7. ✅ Monitor CrowdSec and auditd logs
 8. ✅ Document any custom changes
 
 ## Emergency Recovery
@@ -261,11 +262,10 @@ BACKUP=$(ls -td /var/backups/hardening-* | head -1)
 # Restore files
 sudo cp $BACKUP/sshd_config /etc/ssh/sshd_config
 sudo cp $BACKUP/99-hardening.conf /etc/sysctl.d/
-sudo cp $BACKUP/jail.local /etc/fail2ban/
 
 # Restart services
 sudo systemctl restart sshd
-sudo systemctl restart fail2ban
+sudo systemctl restart crowdsec
 sudo sysctl -p
 ```
 
@@ -276,7 +276,7 @@ After running the script, verify:
 - [ ] Can SSH with key authentication
 - [ ] Sudo works for admin user
 - [ ] Firewall allows required ports
-- [ ] Fail2Ban is running
+- [ ] CrowdSec is running
 - [ ] Auditd is recording events
 - [ ] System time is correct
 - [ ] Unattended upgrades enabled
@@ -293,6 +293,6 @@ After running the script, verify:
 
 ## Version
 
-Current: **v2.1.6**
+Current: **v2.2.0**
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.

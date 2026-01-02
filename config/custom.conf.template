@@ -27,8 +27,11 @@
 #UNATTENDED_UPGRADES_AUTO_REBOOT=false
 
 # --- Security Tools ---
-#INSTALL_FAIL2BAN=true
-#FAIL2BAN_BAN_TIME=3600
+#INSTALL_CROWDSEC=true
+#CROWDSEC_INSTALL_BOUNCER=true
+#CROWDSEC_BOUNCER_TYPE="iptables"  # Options: iptables, nftables
+#CROWDSEC_ENROLL=false             # Set true and provide key to enroll in Console
+#CROWDSEC_ENROLL_KEY=""
 #INSTALL_AUDITD=true
 #INSTALL_RKHUNTER=true
 
@@ -63,8 +66,8 @@
 # --- High Security Configuration ---
 #SSH_PORT=2222
 #SSH_PASSWORD_AUTH="no"
-#FAIL2BAN_BAN_TIME=7200
-#FAIL2BAN_MAX_RETRY=3
+#CROWDSEC_ENROLL=true              # Enroll in CrowdSec Console for shared threat intel
+#CROWDSEC_ENROLL_KEY="your-key"    # Get from app.crowdsec.net
 #DISABLE_USB_STORAGE=true
 #CONFIGURE_APPARMOR=true
 #SYSCTL_IP_FORWARDING=false
