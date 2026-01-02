@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.4] - 2025-01-02
+
+### Fixed
+- **SSH 2FA Authentication**: Public key + TOTP without password prompt
+  - Comments out `@include common-auth` in `/etc/pam.d/sshd` to disable password authentication
+  - Authentication flow is now: public key verification → TOTP code only (no password)
+  - Added `KbdInteractiveAuthentication yes` for compatibility with newer OpenSSH versions
+  - Properly configures `AuthenticationMethods publickey,keyboard-interactive`
+  - Google Authenticator PAM module added correctly to auth stack
+
 ## [2.2.3] - 2025-01-02
 
 ### Improved

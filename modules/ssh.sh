@@ -276,20 +276,43 @@ setup_ssh_two_factor() {
         return 0
     fi
     
-    # Configure PAM
+    # Configure PAM for public key + TOTP (no password)
     local pam_sshd="/etc/pam.d/sshd"
     backup_file "$pam_sshd"
-    
-    if ! grep -q "pam_google_authenticator.so" "$pam_sshd"; then
-        sed -i '/@include common-auth/a auth required pam_google_authenticator.so nullok' "$pam_sshd"
-        log_info "PAM configuration updated"
+
+    # Comment out @include common-auth to disable password prompts
+    # This allows public key + TOTP without password
+    if grep -q "^@include common-auth" "$pam_sshd"; then
+        sed -i 's/^@include common-auth/# @include common-auth  # Disabled for pubkey+TOTP auth/' "$pam_sshd"
+        log_info "Disabled password authentication in PAM"
     fi
-    
-    # Update SSH config for 2FA
+
+    # Add Google Authenticator module if not present
+    if ! grep -q "pam_google_authenticator.so" "$pam_sshd"; then
+        # Add at the top of auth stack
+        sed -i '/^# PAM configuration/a auth required pam_google_authenticator.so nullok' "$pam_sshd"
+        # If that didn't work (no matching line), add after first auth line
+        if ! grep -q "pam_google_authenticator.so" "$pam_sshd"; then
+            sed -i '1a auth required pam_google_authenticator.so nullok' "$pam_sshd"
+        fi
+        log_info "Added Google Authenticator PAM module"
+    fi
+
+    # Update SSH config for 2FA with public key
     sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config
-    
+
+    # For newer OpenSSH versions, also set KbdInteractiveAuthentication
+    if ! grep -q "KbdInteractiveAuthentication" /etc/ssh/sshd_config; then
+        echo "KbdInteractiveAuthentication yes" >> /etc/ssh/sshd_config
+    else
+        sed -i 's/KbdInteractiveAuthentication no/KbdInteractiveAuthentication yes/' /etc/ssh/sshd_config
+    fi
+
+    # Set authentication methods: public key first, then keyboard-interactive (TOTP)
     if ! grep -q "AuthenticationMethods" /etc/ssh/sshd_config; then
         echo "AuthenticationMethods publickey,keyboard-interactive" >> /etc/ssh/sshd_config
+    else
+        sed -i 's/^AuthenticationMethods.*/AuthenticationMethods publickey,keyboard-interactive/' /etc/ssh/sshd_config
     fi
     
     log_success "2FA base configuration complete"

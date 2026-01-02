@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.2.3-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.4-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -429,7 +429,13 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.2.3 (Current)
+### v2.2.4 (Current)
+- **Fixed SSH 2FA**: Public key + TOTP without password prompt
+  - Comments out `@include common-auth` in PAM to disable password
+  - Authentication flow: public key first, then TOTP code only
+  - Added `KbdInteractiveAuthentication yes` for newer OpenSSH versions
+
+### v2.2.3
 - **Improved Post-Install Instructions**: Clear guidance for activating sudo access
   - Shows `exec su -l $USER` command to activate sudo without logout
   - Simplified Quick Start instructions with sudo prefix

@@ -1,6 +1,6 @@
 # Quick Reference Guide
 
-**Linux Base Setup v2.2.3**
+**Linux Base Setup v2.2.4**
 
 ## Installation
 
@@ -293,6 +293,6 @@ After running the script, verify:
 
 ## Version
 
-Current: **v2.2.3**
+Current: **v2.2.4**
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
