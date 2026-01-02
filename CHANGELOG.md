@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.3] - 2025-01-02
+
+### Improved
+- **Post-Install Instructions**: Clear guidance for activating sudo access without logout
+  - Shows `exec su -l $USER` command when user was added to sudo group
+  - Only displays activation instructions when relevant (SUDO_USER set)
+  - Simplified Quick Start with `sudo harden` commands
+  - Reordered steps: run first, customize later (optional)
+
 ## [2.2.2] - 2025-01-02
 
 ### Fixed
