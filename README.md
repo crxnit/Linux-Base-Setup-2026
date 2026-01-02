@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.2.4-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.5-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -429,7 +429,13 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.2.4 (Current)
+### v2.2.5 (Current)
+- **2FA Grace Period**: 15-minute grace period for SSH 2FA
+  - No TOTP prompt if successfully authenticated within last 15 minutes
+  - Uses `pam_timestamp.so` to track recent authentications
+  - Reduces friction for frequent SSH sessions
+
+### v2.2.4
 - **Fixed SSH 2FA**: Public key + TOTP without password prompt
   - Comments out `@include common-auth` in PAM to disable password
   - Authentication flow: public key first, then TOTP code only

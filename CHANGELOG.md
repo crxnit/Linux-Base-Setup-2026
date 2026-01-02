@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.5] - 2025-01-02
+
+### Added
+- **2FA Grace Period**: 15-minute grace period for SSH two-factor authentication
+  - Uses `pam_timestamp.so` to remember successful authentications
+  - If authenticated with 2FA within the last 15 minutes, TOTP prompt is skipped
+  - Creates `/var/run/pam_timestamp` directory for timestamp storage
+  - Session module updates timestamp after each successful login
+  - Reduces friction for users who SSH frequently
+
 ## [2.2.4] - 2025-01-02
 
 ### Fixed

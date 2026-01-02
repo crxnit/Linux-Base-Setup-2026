@@ -276,7 +276,7 @@ setup_ssh_two_factor() {
         return 0
     fi
     
-    # Configure PAM for public key + TOTP (no password)
+    # Configure PAM for public key + TOTP (no password) with 15-min grace period
     local pam_sshd="/etc/pam.d/sshd"
     backup_file "$pam_sshd"
 
@@ -287,15 +287,33 @@ setup_ssh_two_factor() {
         log_info "Disabled password authentication in PAM"
     fi
 
+    # Create timestamp directory for grace period
+    mkdir -p /var/run/pam_timestamp
+    chmod 700 /var/run/pam_timestamp
+
+    # Add pam_timestamp for 15-minute grace period (900 seconds)
+    # If authenticated within 15 min, skip TOTP prompt
+    if ! grep -q "pam_timestamp.so" "$pam_sshd"; then
+        # Add timestamp check at the beginning of auth (sufficient = skip rest if valid)
+        sed -i '1a auth sufficient pam_timestamp.so timestamp_timeout=900' "$pam_sshd"
+        log_info "Added 15-minute grace period for 2FA"
+    fi
+
     # Add Google Authenticator module if not present
     if ! grep -q "pam_google_authenticator.so" "$pam_sshd"; then
-        # Add at the top of auth stack
-        sed -i '/^# PAM configuration/a auth required pam_google_authenticator.so nullok' "$pam_sshd"
-        # If that didn't work (no matching line), add after first auth line
+        # Add after the timestamp line
+        sed -i '/pam_timestamp.so/a auth required pam_google_authenticator.so nullok' "$pam_sshd"
+        # If that didn't work, add at line 2
         if ! grep -q "pam_google_authenticator.so" "$pam_sshd"; then
-            sed -i '1a auth required pam_google_authenticator.so nullok' "$pam_sshd"
+            sed -i '2a auth required pam_google_authenticator.so nullok' "$pam_sshd"
         fi
         log_info "Added Google Authenticator PAM module"
+    fi
+
+    # Add session line to update timestamp after successful auth
+    if ! grep -q "session.*pam_timestamp.so" "$pam_sshd"; then
+        echo "session optional pam_timestamp.so timestamp_timeout=900" >> "$pam_sshd"
+        log_info "Added session timestamp update"
     fi
 
     # Update SSH config for 2FA with public key
