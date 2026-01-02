@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -429,7 +429,14 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.2.0 (Current)
+### v2.2.1 (Current)
+- **Enhanced Install Script**: Full automation for fresh minimal installations
+  - Runs apt update && apt upgrade before installation
+  - Automatically installs essential tools (sudo, curl, git, vim, gnupg, ca-certificates)
+  - Creates sudo group if missing
+  - Clear progress indicators during installation
+
+### v2.2.0
 - **CrowdSec Integration**: Replaced Fail2Ban with CrowdSec for modern intrusion prevention
   - Collaborative threat intelligence from global community
   - Automatic IP reputation checking

@@ -7,7 +7,6 @@ set -e
 
 REPO_URL="https://github.com/crxnit/Linux-Base-Setup-2026.git"
 INSTALL_DIR="/opt/linux-base-setup"
-TEMP_DIR=$(mktemp -d)
 
 echo "============================================"
 echo "  Linux Base Setup - Quick Install"
@@ -21,18 +20,59 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# Check if git is installed
-if ! command -v git &>/dev/null; then
-    echo "Installing git..."
-    apt-get update -qq
-    apt-get install -y git
+# ============================================================================
+# System Update and Essential Tools
+# ============================================================================
+
+echo "[1/4] Updating system packages..."
+apt-get update -y
+DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+
+echo ""
+echo "[2/4] Checking and installing essential tools..."
+
+# List of essential tools needed for installation and script execution
+ESSENTIAL_TOOLS=(
+    "sudo"
+    "curl"
+    "git"
+    "vim"
+    "gnupg"
+    "ca-certificates"
+    "apt-transport-https"
+)
+
+# Check and install missing tools
+MISSING_TOOLS=()
+for tool in "${ESSENTIAL_TOOLS[@]}"; do
+    if ! dpkg -l "$tool" &>/dev/null; then
+        MISSING_TOOLS+=("$tool")
+    fi
+done
+
+if [[ ${#MISSING_TOOLS[@]} -gt 0 ]]; then
+    echo "Installing missing tools: ${MISSING_TOOLS[*]}"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "${MISSING_TOOLS[@]}"
+    echo "✓ Essential tools installed"
+else
+    echo "✓ All essential tools already installed"
 fi
 
+# Ensure sudo group exists and is configured
+if ! getent group sudo &>/dev/null; then
+    echo "Creating sudo group..."
+    groupadd sudo
+fi
+
+# Create temp directory after tools are installed
+TEMP_DIR=$(mktemp -d)
+
 # Clone repository
-echo "Downloading Linux Base Setup..."
+echo ""
+echo "[3/4] Downloading Linux Base Setup..."
 cd "$TEMP_DIR"
 
-if git clone "$REPO_URL" .; then
+if git clone --quiet "$REPO_URL" .; then
     echo "✓ Downloaded successfully"
 else
     echo "ERROR: Failed to download from $REPO_URL"
@@ -40,7 +80,8 @@ else
 fi
 
 # Install to /opt
-echo "Installing to $INSTALL_DIR..."
+echo ""
+echo "[4/4] Installing to $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
 cp -r ./* "$INSTALL_DIR/"
 

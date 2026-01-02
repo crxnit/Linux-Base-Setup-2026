@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.1] - 2025-01-02
+
+### Improved
+- **Install Script**: Enhanced for fresh minimal installations
+  - Runs `apt update && apt upgrade -y` before any installation
+  - Automatically checks and installs essential tools: sudo, curl, git, vim, gnupg, ca-certificates, apt-transport-https
+  - Creates sudo group if missing on minimal systems
+  - Clear progress indicators ([1/4], [2/4], etc.) during installation
+  - Uses DEBIAN_FRONTEND=noninteractive for fully automated installation
+
 ## [2.2.0] - 2025-01-02
 
 ### Changed
