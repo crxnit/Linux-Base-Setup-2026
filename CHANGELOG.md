@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.2] - 2025-01-02
+
+### Fixed
+- **Sudoers Configuration**: Automatically adds users to sudo group during installation
+  - If script is run via `sudo`, adds the invoking user ($SUDO_USER) to sudo group
+  - If script is run directly as root, adds all regular users (UID >= 1000) to sudo group
+  - Prevents "user is not in the sudoers file" errors after installation
+  - Checks existing group membership to avoid duplicate additions
+
 ## [2.2.1] - 2025-01-02
 
 ### Improved

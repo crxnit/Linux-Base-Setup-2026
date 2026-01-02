@@ -1,6 +1,6 @@
 # Linux Base Setup v2.0
 
-![Version](https://img.shields.io/badge/version-2.2.1-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.2-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Debian%20%7C%20Ubuntu-orange.svg)
 ![Architecture](https://img.shields.io/badge/arch-AMD64%20%7C%20ARM64%20%7C%20ARM32-green.svg)
@@ -429,7 +429,13 @@ MIT License - see LICENSE file for details
 
 ## 🔖 Version History
 
-### v2.2.1 (Current)
+### v2.2.2 (Current)
+- **Sudoers Configuration**: Automatically adds users to sudo group
+  - If run via sudo, adds the invoking user to sudo group
+  - If run as root, adds all regular users (UID >= 1000) to sudo group
+  - Prevents "user is not in the sudoers file" errors
+
+### v2.2.1
 - **Enhanced Install Script**: Full automation for fresh minimal installations
   - Runs apt update && apt upgrade before installation
   - Automatically installs essential tools (sudo, curl, git, vim, gnupg, ca-certificates)

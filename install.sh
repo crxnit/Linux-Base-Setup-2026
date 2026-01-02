@@ -64,6 +64,37 @@ if ! getent group sudo &>/dev/null; then
     groupadd sudo
 fi
 
+# Add users to sudo group
+# If SUDO_USER is set (script run via sudo), add that user
+if [[ -n "$SUDO_USER" ]] && [[ "$SUDO_USER" != "root" ]]; then
+    if ! groups "$SUDO_USER" 2>/dev/null | grep -q '\bsudo\b'; then
+        echo "Adding user '$SUDO_USER' to sudo group..."
+        usermod -aG sudo "$SUDO_USER"
+        echo "✓ User '$SUDO_USER' added to sudo group"
+    else
+        echo "✓ User '$SUDO_USER' already in sudo group"
+    fi
+else
+    # Running as root directly - add all regular users (UID >= 1000) to sudo group
+    echo "Checking regular users for sudo access..."
+    USERS_ADDED=0
+    while IFS=: read -r username _ uid _ _ _ _; do
+        if [[ $uid -ge 1000 ]] && [[ $uid -lt 65534 ]]; then
+            if ! groups "$username" 2>/dev/null | grep -q '\bsudo\b'; then
+                echo "Adding user '$username' to sudo group..."
+                usermod -aG sudo "$username"
+                ((USERS_ADDED++))
+            fi
+        fi
+    done < /etc/passwd
+
+    if [[ $USERS_ADDED -gt 0 ]]; then
+        echo "✓ Added $USERS_ADDED user(s) to sudo group"
+    else
+        echo "✓ All regular users already have sudo access"
+    fi
+fi
+
 # Create temp directory after tools are installed
 TEMP_DIR=$(mktemp -d)
 
