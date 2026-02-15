@@ -276,10 +276,9 @@ fi
 
 preflight_checks() {
     log_section "Pre-flight Checks"
-    
-    # Check if running as root
-    check_root
-    
+
+    # Root check already performed before modules are loaded (line 246)
+
     # Install essential tools (sudo, curl, vim) if missing
     install_essential_tools
     
@@ -311,27 +310,28 @@ preflight_checks() {
 
 display_summary() {
     log_section "Configuration Summary"
-    
-    echo "System Configuration:" | tee -a "$LOG_FILE"
-    echo "  Dry Run: $DRY_RUN" | tee -a "$LOG_FILE"
-    echo "  Interactive: $INTERACTIVE" | tee -a "$LOG_FILE"
-    echo "" | tee -a "$LOG_FILE"
-    
-    echo "Components to Configure:" | tee -a "$LOG_FILE"
-    echo "  System Updates: $PERFORM_UPDATES" | tee -a "$LOG_FILE"
-    echo "  Unattended Upgrades: $ENABLE_UNATTENDED_UPGRADES" | tee -a "$LOG_FILE"
-    echo "  Admin User: $CREATE_ADMIN_USER" | tee -a "$LOG_FILE"
-    echo "  SSH Hardening: $CONFIGURE_SSH" | tee -a "$LOG_FILE"
-    echo "  SSH Port: $SSH_PORT" | tee -a "$LOG_FILE"
-    echo "  Firewall ($FIREWALL_TYPE): $CONFIGURE_FIREWALL" | tee -a "$LOG_FILE"
-    echo "  CrowdSec: $INSTALL_CROWDSEC" | tee -a "$LOG_FILE"
-    echo "  Auditd: $INSTALL_AUDITD" | tee -a "$LOG_FILE"
-    echo "  Kernel Hardening: $CONFIGURE_SYSCTL" | tee -a "$LOG_FILE"
-    echo "  RKHunter: $INSTALL_RKHUNTER" | tee -a "$LOG_FILE"
-    echo "  NTP ($NTP_SERVICE): $CONFIGURE_NTP" | tee -a "$LOG_FILE"
-    echo "  Hostname: $CONFIGURE_HOSTNAME" | tee -a "$LOG_FILE"
-    echo "" | tee -a "$LOG_FILE"
-    
+
+    {
+        echo "System Configuration:"
+        echo "  Dry Run: $DRY_RUN"
+        echo "  Interactive: $INTERACTIVE"
+        echo ""
+        echo "Components to Configure:"
+        echo "  System Updates: $PERFORM_UPDATES"
+        echo "  Unattended Upgrades: $ENABLE_UNATTENDED_UPGRADES"
+        echo "  Admin User: $CREATE_ADMIN_USER"
+        echo "  SSH Hardening: $CONFIGURE_SSH"
+        echo "  SSH Port: $SSH_PORT"
+        echo "  Firewall ($FIREWALL_TYPE): $CONFIGURE_FIREWALL"
+        echo "  CrowdSec: $INSTALL_CROWDSEC"
+        echo "  Auditd: $INSTALL_AUDITD"
+        echo "  Kernel Hardening: $CONFIGURE_SYSCTL"
+        echo "  RKHunter: $INSTALL_RKHUNTER"
+        echo "  NTP ($NTP_SERVICE): $CONFIGURE_NTP"
+        echo "  Hostname: $CONFIGURE_HOSTNAME"
+        echo ""
+    } | tee -a "$LOG_FILE"
+
     if [[ "$INTERACTIVE" == "true" ]] && [[ "$DRY_RUN" != "true" ]]; then
         if ! prompt_yes_no "Proceed with hardening?" "y"; then
             log_warning "Hardening cancelled by user"

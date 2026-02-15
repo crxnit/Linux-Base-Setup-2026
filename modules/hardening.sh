@@ -321,15 +321,23 @@ install hfs /bin/true
 install hfsplus /bin/true
 install udf /bin/true
 
+# Disable bluetooth if not needed
+#install bluetooth /bin/true
+EOF
+
+    # Ensure uncommon network protocols are also disabled
+    # (handled by disable_uncommon_protocols; call it if not already run)
+    if [[ "$DISABLE_UNCOMMON_PROTOCOLS" != "true" ]]; then
+        # Append protocol disables here since disable_uncommon_protocols() was skipped
+        cat >> "$modprobe_conf" <<EOF
+
 # Disable uncommon network protocols
 install dccp /bin/true
 install sctp /bin/true
 install rds /bin/true
 install tipc /bin/true
-
-# Disable bluetooth if not needed
-#install bluetooth /bin/true
 EOF
+    fi
     
     log_success "Kernel module security configured"
     return 0

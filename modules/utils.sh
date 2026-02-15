@@ -57,12 +57,12 @@ show_progress() {
     local pid=$2
     local delay=0.1
     local spinstr='|/-\'
-    
+
     while ps -p "$pid" > /dev/null 2>&1; do
         local temp=${spinstr#?}
         printf " [%c] %s" "$spinstr" "$message"
         local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
+        sleep "$delay"
         printf "\r"
     done
     printf "    \r"
@@ -74,7 +74,6 @@ install_essential_tools() {
     echo "Checking for essential tools..."
 
     local tools_to_install=()
-    local tools_installed=false
 
     # Check for sudo
     if ! command -v sudo &> /dev/null; then
@@ -115,7 +114,6 @@ install_essential_tools() {
             echo "Installing $tool..."
             if DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$tool"; then
                 echo "✓ Installed: $tool"
-                tools_installed=true
             else
                 echo "ERROR: Failed to install $tool"
                 exit 1
@@ -164,32 +162,20 @@ is_debian_based() {
     [[ -f /etc/debian_version ]]
 }
 
-get_distribution() {
+_get_os_release_field() {
+    local field="$1"
     if [[ -f /etc/os-release ]]; then
+        # shellcheck source=/dev/null
         . /etc/os-release
-        echo "$ID"
+        eval "echo \"\${$field:-unknown}\""
     else
         echo "unknown"
     fi
 }
 
-get_distribution_version() {
-    if [[ -f /etc/os-release ]]; then
-        . /etc/os-release
-        echo "$VERSION_ID"
-    else
-        echo "unknown"
-    fi
-}
-
-get_distribution_codename() {
-    if [[ -f /etc/os-release ]]; then
-        . /etc/os-release
-        echo "$VERSION_CODENAME"
-    else
-        echo "unknown"
-    fi
-}
+get_distribution()          { _get_os_release_field ID; }
+get_distribution_version()  { _get_os_release_field VERSION_ID; }
+get_distribution_codename() { _get_os_release_field VERSION_CODENAME; }
 
 is_ubuntu() {
     [[ "$(get_distribution)" == "ubuntu" ]]
@@ -228,7 +214,7 @@ is_arm32() {
 check_distribution() {
     if ! is_debian_based; then
         log_error "This script is designed for Debian/Ubuntu-based distributions"
-        log_error "Detected: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+        log_error "Detected: $(grep PRETTY_NAME /etc/os-release | cut -d'"' -f2)"
         exit 1
     fi
     
@@ -310,7 +296,8 @@ validate_email() {
 
 backup_file() {
     local file="$1"
-    local backup_path="${BACKUP_DIR}/$(basename "$file").$(date +%Y%m%d_%H%M%S)"
+    local backup_path
+    backup_path="${BACKUP_DIR}/$(basename "$file").$(date +%Y%m%d_%H%M%S)"
 
     # File not existing is not an error - just skip backup
     if [[ ! -f "$file" ]]; then
@@ -519,56 +506,27 @@ service_active() {
     systemctl is-active --quiet "$1"
 }
 
-enable_service() {
-    local service="$1"
-    
+manage_service() {
+    local action="$1"
+    local service="$2"
+
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would enable service: $service"
+        log_info "[DRY-RUN] Would $action service: $service"
         return 0
     fi
-    
-    if systemctl enable "$service" >> "$LOG_FILE" 2>&1; then
-        log_success "Enabled service: $service"
+
+    if systemctl "$action" "$service" >> "$LOG_FILE" 2>&1; then
+        log_success "${action^} service: $service"
         return 0
     else
-        log_error "Failed to enable service: $service"
+        log_error "Failed to $action service: $service"
         return 1
     fi
 }
 
-start_service() {
-    local service="$1"
-    
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would start service: $service"
-        return 0
-    fi
-    
-    if systemctl start "$service" >> "$LOG_FILE" 2>&1; then
-        log_success "Started service: $service"
-        return 0
-    else
-        log_error "Failed to start service: $service"
-        return 1
-    fi
-}
-
-restart_service() {
-    local service="$1"
-    
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would restart service: $service"
-        return 0
-    fi
-    
-    if systemctl restart "$service" >> "$LOG_FILE" 2>&1; then
-        log_success "Restarted service: $service"
-        return 0
-    else
-        log_error "Failed to restart service: $service"
-        return 1
-    fi
-}
+enable_service()  { manage_service enable "$1"; }
+start_service()   { manage_service start "$1"; }
+restart_service() { manage_service restart "$1"; }
 
 # --- Cleanup Functions ---
 

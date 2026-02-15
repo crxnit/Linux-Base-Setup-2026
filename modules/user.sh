@@ -74,7 +74,8 @@ create_admin_user() {
         fi
     else
         # Generate random password and force change on first login
-        local temp_password=$(openssl rand -base64 16)
+        local temp_password
+        temp_password=$(openssl rand -base64 16)
         echo "$ADMIN_USERNAME:$temp_password" | chpasswd
         passwd -e "$ADMIN_USERNAME"
         log_warning "Temporary password set (will be forced to change on first login)"
@@ -224,10 +225,10 @@ EOF
     
     # Apply to existing users (optional)
     if prompt_yes_no "Apply password aging policy to existing users?" "n"; then
-        for user in $(awk -F: '$3 >= 1000 && $1 != "nobody" {print $1}' /etc/passwd); do
+        while IFS= read -r user; do
             chage -M "$PASSWORD_MAX_DAYS" -m "$PASSWORD_MIN_DAYS" -W "$PASSWORD_WARN_DAYS" "$user"
             log_info "Applied password policy to user: $user"
-        done
+        done < <(awk -F: '$3 >= 1000 && $1 != "nobody" {print $1}' /etc/passwd)
         log_success "Password aging applied to existing users"
     fi
     

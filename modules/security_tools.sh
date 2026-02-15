@@ -33,8 +33,7 @@ configure_crowdsec() {
 
     # Add CrowdSec GPG key and repository
     if [[ ! -f /etc/apt/sources.list.d/crowdsec_crowdsec.list ]]; then
-        curl -s https://install.crowdsec.net | bash >> "$LOG_FILE" 2>&1
-        if [[ $? -ne 0 ]]; then
+        if ! curl -s https://install.crowdsec.net | bash >> "$LOG_FILE" 2>&1; then
             log_error "Failed to add CrowdSec repository"
             return 1
         fi
@@ -312,6 +311,7 @@ install_rkhunter() {
 
     if [[ -f "$rkhunter_conf" ]]; then
         sed -i 's/^#MAIL-ON-WARNING=.*/MAIL-ON-WARNING=root@localhost/' "$rkhunter_conf"
+        # shellcheck disable=SC2016 # ${HOST_NAME} is expanded by rkhunter at runtime, not bash
         sed -i 's/^#MAIL_CMD=.*/MAIL_CMD=mail -s "[rkhunter] Warnings found for ${HOST_NAME}"/' "$rkhunter_conf"
     fi
 

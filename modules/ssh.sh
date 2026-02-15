@@ -7,16 +7,24 @@
 
 configure_ssh() {
     log_section "SSH Configuration and Hardening"
-    
+
     if [[ "$CONFIGURE_SSH" != "true" ]]; then
         log_info "SSH configuration disabled"
         return 0
     fi
-    
+
     local sshd_config="/etc/ssh/sshd_config"
-    
-    # Backup original config
-    backup_file "$sshd_config"
+    local sshd_backup=""
+
+    # Backup original config and store the backup path for rollback
+    if [[ -f "$sshd_config" ]] && [[ "$DRY_RUN" != "true" ]]; then
+        sshd_backup="${BACKUP_DIR}/$(basename "$sshd_config").$(date +%Y%m%d_%H%M%S)"
+        mkdir -p "$BACKUP_DIR"
+        cp -a "$sshd_config" "$sshd_backup"
+        log_success "Backed up: $sshd_config -> $sshd_backup"
+    else
+        backup_file "$sshd_config"
+    fi
     
     log_info "Hardening SSH configuration"
     
@@ -142,8 +150,12 @@ EOF
         log_success "SSH configuration is valid"
     else
         log_error "SSH configuration test failed!"
-        log_error "Restoring backup configuration"
-        cp "${sshd_config}.$(date +%Y%m%d_%H%M%S)" "$sshd_config"
+        if [[ -n "$sshd_backup" && -f "$sshd_backup" ]]; then
+            log_error "Restoring backup configuration from $sshd_backup"
+            cp "$sshd_backup" "$sshd_config"
+        else
+            log_error "No backup available to restore"
+        fi
         return 1
     fi
     
@@ -188,8 +200,9 @@ create_ssh_banner() {
 EOF
     
     # Uncomment Banner line in sshd_config
-    sed -i 's|^#Banner /etc/ssh/banner|Banner /etc/ssh/banner|' /etc/ssh/sshd_config
-    
+    local sshd_config="/etc/ssh/sshd_config"
+    sed -i 's|^#Banner /etc/ssh/banner|Banner /etc/ssh/banner|' "$sshd_config"
+
     log_info "SSH banner created"
 }
 

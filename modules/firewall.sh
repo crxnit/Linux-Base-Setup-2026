@@ -5,6 +5,19 @@
 # Functions for configuring UFW or firewalld
 # ============================================================================
 
+# Return the list of additional allowed ports (excluding the SSH port)
+_get_additional_ports() {
+    local port_spec
+    IFS=',' read -ra ports <<< "$UFW_ALLOWED_PORTS"
+    for port_spec in "${ports[@]}"; do
+        # Skip if it's the SSH port (already added separately)
+        if [[ "$port_spec" == "$SSH_PORT/tcp" ]] || [[ "$port_spec" == "$SSH_PORT" ]]; then
+            continue
+        fi
+        echo "$port_spec"
+    done
+}
+
 configure_firewall() {
     log_section "Firewall Configuration"
     
@@ -62,17 +75,11 @@ configure_ufw() {
     ufw allow "$SSH_PORT/tcp" comment 'SSH' >> "$LOG_FILE" 2>&1
     
     # Allow other configured ports
-    IFS=',' read -ra ports <<< "$UFW_ALLOWED_PORTS"
-    for port_spec in "${ports[@]}"; do
-        # Skip if it's the SSH port (already added)
-        if [[ "$port_spec" == "$SSH_PORT/tcp" ]] || [[ "$port_spec" == "$SSH_PORT" ]]; then
-            continue
-        fi
-        
+    while IFS= read -r port_spec; do
         log_info "Allowing port: $port_spec"
         ufw allow "$port_spec" >> "$LOG_FILE" 2>&1
-    done
-    
+    done < <(_get_additional_ports)
+
     # Enable logging
     ufw logging low >> "$LOG_FILE" 2>&1
     
@@ -99,8 +106,10 @@ configure_firewalld() {
     fi
     
     # Start and enable firewalld
-    systemctl start firewalld >> "$LOG_FILE" 2>&1
-    systemctl enable firewalld >> "$LOG_FILE" 2>&1
+    {
+        systemctl start firewalld
+        systemctl enable firewalld
+    } >> "$LOG_FILE" 2>&1
     
     # Set default zone
     firewall-cmd --set-default-zone=public >> "$LOG_FILE" 2>&1
@@ -110,15 +119,10 @@ configure_firewalld() {
     firewall-cmd --permanent --add-port="$SSH_PORT/tcp" >> "$LOG_FILE" 2>&1
     
     # Allow other configured ports
-    IFS=',' read -ra ports <<< "$UFW_ALLOWED_PORTS"
-    for port_spec in "${ports[@]}"; do
-        if [[ "$port_spec" == "$SSH_PORT/tcp" ]] || [[ "$port_spec" == "$SSH_PORT" ]]; then
-            continue
-        fi
-        
+    while IFS= read -r port_spec; do
         log_info "Allowing port: $port_spec"
         firewall-cmd --permanent --add-port="$port_spec" >> "$LOG_FILE" 2>&1
-    done
+    done < <(_get_additional_ports)
     
     # Reload firewalld
     firewall-cmd --reload >> "$LOG_FILE" 2>&1
