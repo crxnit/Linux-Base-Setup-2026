@@ -1,0 +1,201 @@
+# =============================================================================
+# DOCKER HOST KERNEL HARDENING CONFIGURATION
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# IP FORWARDING - ENABLED FOR DOCKER
+# -----------------------------------------------------------------------------
+net.ipv4.ip_forward = 1
+
+# -----------------------------------------------------------------------------
+# SOURCE ROUTING - DISABLED (unchanged)
+# -----------------------------------------------------------------------------
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+
+# -----------------------------------------------------------------------------
+# ICMP REDIRECTS - DISABLED (unchanged)
+# -----------------------------------------------------------------------------
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+
+# -----------------------------------------------------------------------------
+# REVERSE PATH FILTERING - LOOSE MODE FOR DOCKER
+# -----------------------------------------------------------------------------
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
+
+# -----------------------------------------------------------------------------
+# MARTIAN LOGGING (unchanged)
+# -----------------------------------------------------------------------------
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
+
+# -----------------------------------------------------------------------------
+# SYN FLOOD PROTECTION (unchanged)
+# -----------------------------------------------------------------------------
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 2048
+net.ipv4.tcp_synack_retries = 2
+net.ipv4.tcp_syn_retries = 5
+
+# -----------------------------------------------------------------------------
+# ICMP HARDENING (unchanged)
+# -----------------------------------------------------------------------------
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+
+# -----------------------------------------------------------------------------
+# KERNEL SECURITY (unchanged)
+# -----------------------------------------------------------------------------
+kernel.dmesg_restrict = 1
+kernel.kptr_restrict = 1
+kernel.randomize_va_space = 2
+kernel.yama.ptrace_scope = 1
+kernel.panic = 10
+kernel.panic_on_oops = 1
+fs.suid_dumpable = 0
+
+# -----------------------------------------------------------------------------
+# NETWORK BUFFER TUNING (unchanged)
+# -----------------------------------------------------------------------------
+net.core.rmem_max = 134217728
+net.core.wmem_max = 134217728
+net.core.rmem_default = 67108864
+net.core.wmem_default = 67108864
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 4096
+
+# -----------------------------------------------------------------------------
+# TCP BUFFER AUTO-TUNING - NEW
+# -----------------------------------------------------------------------------
+net.ipv4.tcp_rmem = 4096 87380 134217728
+net.ipv4.tcp_wmem = 4096 65536 134217728
+net.ipv4.tcp_mem = 786432 1048576 1572864
+
+# -----------------------------------------------------------------------------
+# IPV6 - COMPLETELY DISABLED
+# -----------------------------------------------------------------------------
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+
+# -----------------------------------------------------------------------------
+# IPV6 CONFIGURATION (ONLY IF IPv6 is ENABLED)
+# -----------------------------------------------------------------------------
+# net.ipv6.conf.all.forwarding = 1
+# net.ipv6.conf.all.accept_source_route = 0
+# net.ipv6.conf.default.accept_source_route = 0
+# net.ipv6.conf.all.disable_ipv6 = 0
+# net.ipv6.conf.default.disable_ipv6 = 0
+# net.ipv6.conf.lo.disable_ipv6 = 0
+# net.ipv6.conf.all.accept_ra = 0
+# net.ipv6.conf.default.accept_ra = 0
+# net.bridge.bridge-nf-call-ip6tables = 1
+
+# -----------------------------------------------------------------------------
+# FILESYSTEM PROTECTION (unchanged)
+# -----------------------------------------------------------------------------
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+fs.protected_fifos = 2
+fs.protected_regular = 2
+
+# -----------------------------------------------------------------------------
+# BRIDGE NETWORKING - NEW FOR DOCKER
+# -----------------------------------------------------------------------------
+net.bridge.bridge-nf-call-iptables = 1
+
+# -----------------------------------------------------------------------------
+# CONNECTION TRACKING - NEW FOR TRAEFIK
+# -----------------------------------------------------------------------------
+net.netfilter.nf_conntrack_max = 262144
+net.netfilter.nf_conntrack_tcp_timeout_established = 86400
+net.netfilter.nf_conntrack_tcp_timeout_time_wait = 30
+
+# -----------------------------------------------------------------------------
+# EPHEMERAL PORTS - NEW FOR PROXY WORKLOADS
+# -----------------------------------------------------------------------------
+net.ipv4.ip_local_port_range = 1024 65535
+
+# -----------------------------------------------------------------------------
+# TCP KEEPALIVE - NEW FOR LONG-LIVED CONNECTIONS
+# -----------------------------------------------------------------------------
+net.ipv4.tcp_keepalive_time = 600
+net.ipv4.tcp_keepalive_intvl = 60
+net.ipv4.tcp_keepalive_probes = 5
+
+# -----------------------------------------------------------------------------
+# TIME_WAIT HANDLING - NEW FOR HIGH CONNECTION VOLUME
+# -----------------------------------------------------------------------------
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_fin_timeout = 15
+
+# -----------------------------------------------------------------------------
+# Add this file
+# /etc/modules-load.d/docker-hardening.conf
+# -----------------------------------------------------------------------------
+
+# Required for bridge netfilter settings
+br_netfilter
+
+# Required for connection tracking settings
+nf_conntrack
+
+# -----------------------------------------------------------------------------
+# COMPLETELE DISABLE ipv6
+# Edit /etc/default/grub:
+# -----------------------------------------------------------------------------
+GRUB_CMDLINE_LINUX="ipv6.disable=1"
+sudo update-grub
+
+# -----------------------------------------------------------------------------
+# DOCKER DISABLE ipv6
+# Create or edit /etc/docker/daemon.json:
+# -----------------------------------------------------------------------------
+
+{
+  "ipv6": false,
+  "ip6tables": false
+}
+sudo systemctl restart docker
+
+# -----------------------------------------------------------------------------
+# TRAEFIK ipv4 ONLY CONFIGURATION
+# in traefik.yaml
+# -----------------------------------------------------------------------------
+entryPoints:
+  web:
+    address: "0.0.0.0:80"
+  websecure:
+    address: "0.0.0.0:443"
+
+
+# -----------------------------------------------------------------------------
+# To prevent the IPv6 module from loading entirely, 
+# create /etc/modprobe.d/disable-ipv6.conf:
+# -----------------------------------------------------------------------------
+options ipv6 disable=1
+blacklist ipv6
+
+
+# -----------------------------------------------------------------------------
+# Verification After Reboot
+# -----------------------------------------------------------------------------
+# Confirm IPv6 is disabled
+cat /proc/sys/net/ipv6/conf/all/disable_ipv6
+# Should return: 1
+
+# Confirm no IPv6 addresses on interfaces
+ip -6 addr
+# Should return nothing or "not found"
+
+# Confirm Docker networks are IPv4 only
+docker network inspect bridge | grep -i ipv6
+# Should show "EnableIPv6": false

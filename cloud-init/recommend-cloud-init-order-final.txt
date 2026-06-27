@@ -1,0 +1,14 @@
+runcmd:
+  # 1. Create directories
+  # 2. Load kernel modules
+  # 3. Apply sysctl hardening
+  # 4. Disable alternative firewalls
+  # 5. Update GRUB (IPv6 disable)
+  # 6. Install Docker
+  # 7. Configure iptables firewall
+  # 8. Configure SSH hardening
+  # 9. Enable security services (fail2ban, auditd, chrony)
+  # 10. Disable unnecessary services
+  # 11. Configure filesystem hardening
+  # 12. Run verification scripts
+  # 13. Reboot (power_state)

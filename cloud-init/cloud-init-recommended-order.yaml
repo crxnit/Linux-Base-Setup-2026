@@ -1,0 +1,39 @@
+runcmd:
+  # 1. Load required kernel modules
+  - modprobe br_netfilter
+  - modprobe nf_conntrack
+  
+  # 2. Apply sysctl settings
+  - sysctl --system
+  
+  # 3. Disable alternative firewalls (MUST be before Docker and iptables config)
+  - /usr/local/bin/disable-alternative-firewalls.sh
+  
+  # 4. Update GRUB for IPv6 disable
+  - |
+    if [ -f /etc/default/grub ]; then
+      if ! grep -q "ipv6.disable=1" /etc/default/grub; then
+        sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 ipv6.disable=1"/' /etc/default/grub
+        update-grub 2>/dev/null || grub2-mkconfig -o /boot/grub2/grub.cfg 2>/dev/null || true
+      fi
+    fi
+  
+  # 5. Install Docker
+  - |
+    if ! command -v docker &>/dev/null; then
+      curl -fsSL https://get.docker.com | sh
+      systemctl enable docker
+      systemctl start docker
+    else
+      systemctl restart docker
+    fi
+  
+  # 6. Wait for Docker to initialize chains
+  - sleep 5
+  
+  # 7. Configure iptables firewall
+  - /usr/local/bin/configure-firewall.sh
+  
+  # 8. Verify everything
+  - /usr/local/bin/verify-hardening.sh >> /var/log/cloud-init-hardening.log 2>&1 || true
+  - /usr/local/bin/verify-firewall.sh >> /var/log/cloud-init-hardening.log 2>&1 || true

@@ -1,0 +1,1314 @@
+#cloud-config
+# =============================================================================
+# ADDITIONAL SERVER HARDENING - CLOUD-INIT
+# =============================================================================
+# This configuration adds comprehensive hardening beyond basic firewall
+# and kernel settings. Combine with the base hardening cloud-init.
+#
+# Features:
+#   - SSH hardening
+#   - Automatic security updates
+#   - Fail2ban intrusion prevention
+#   - Audit logging
+#   - Time synchronization
+#   - Filesystem hardening
+#   - Monitoring preparation
+#   - Management utilities
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# PACKAGES
+# -----------------------------------------------------------------------------
+package_update: true
+package_upgrade: true
+
+packages:
+  # Security
+  - fail2ban
+  - aide
+  - rkhunter
+  - lynis
+  - auditd
+  - audispd-plugins
+  
+  # Time sync
+  - chrony
+  
+  # Monitoring
+  - sysstat
+  - iotop
+  - htop
+  - atop
+  
+  # Networking tools
+  - tcpdump
+  - nmap
+  - netcat-openbsd
+  - mtr-tiny
+  - dnsutils
+  - whois
+  
+  # System utilities
+  - tmux
+  - screen
+  - tree
+  - ncdu
+  - rsync
+  - pigz
+  - pv
+  - jq
+  - yq
+  - vim
+  - unzip
+  - zip
+  - bzip2
+  - xz-utils
+  
+  # Development/debugging
+  - strace
+  - lsof
+  - gdb
+  
+  # Log management
+  - logrotate
+  
+  # Misc
+  - ca-certificates
+  - gnupg
+  - apt-transport-https
+  - software-properties-common
+
+# -----------------------------------------------------------------------------
+# WRITE FILES
+# -----------------------------------------------------------------------------
+write_files:
+
+  # ===========================================================================
+  # SSH HARDENING
+  # ===========================================================================
+  
+  - path: /etc/ssh/sshd_config.d/99-hardening.conf
+    owner: root:root
+    permissions: '0600'
+    content: |
+      # =============================================================================
+      # SSH HARDENING CONFIGURATION
+      # =============================================================================
+      # This file is included by sshd_config via Include directive
+      # To change SSH port, modify Port below and update firewall rules
+      # =============================================================================
+      
+      # -----------------------------------------------------------------------------
+      # NETWORK
+      # -----------------------------------------------------------------------------
+      # Default port - change to 4444 after initial setup and firewall verification
+      Port 22
+      #Port 4444
+      
+      # Listen on IPv4 only (IPv6 disabled system-wide)
+      AddressFamily inet
+      ListenAddress 0.0.0.0
+      
+      # -----------------------------------------------------------------------------
+      # AUTHENTICATION
+      # -----------------------------------------------------------------------------
+      # Disable root login (use sudo instead)
+      PermitRootLogin no
+      
+      # Key-based authentication only
+      PubkeyAuthentication yes
+      PasswordAuthentication no
+      PermitEmptyPasswords no
+      ChallengeResponseAuthentication no
+      
+      # Disable other auth methods
+      KerberosAuthentication no
+      GSSAPIAuthentication no
+      HostbasedAuthentication no
+      
+      # Strict mode - check file permissions
+      StrictModes yes
+      
+      # Maximum auth attempts
+      MaxAuthTries 3
+      MaxSessions 10
+      
+      # Login grace period
+      LoginGraceTime 30
+      
+      # -----------------------------------------------------------------------------
+      # CRYPTOGRAPHY
+      # -----------------------------------------------------------------------------
+      # Modern ciphers only
+      Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+      
+      # Modern MACs only
+      MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+      
+      # Modern key exchange
+      KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+      
+      # Host key algorithms
+      HostKeyAlgorithms ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256
+      
+      # -----------------------------------------------------------------------------
+      # SESSION
+      # -----------------------------------------------------------------------------
+      # Client alive settings (disconnect idle sessions)
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+      
+      # Disable TCP forwarding (enable if needed for tunnels)
+      AllowTcpForwarding no
+      AllowStreamLocalForwarding no
+      GatewayPorts no
+      PermitTunnel no
+      
+      # Disable X11 forwarding
+      X11Forwarding no
+      
+      # Disable agent forwarding (enable if needed)
+      AllowAgentForwarding no
+      
+      # Compression (disable for security, enable for slow links)
+      Compression no
+      
+      # -----------------------------------------------------------------------------
+      # LOGGING
+      # -----------------------------------------------------------------------------
+      SyslogFacility AUTH
+      LogLevel VERBOSE
+      
+      # -----------------------------------------------------------------------------
+      # MISC
+      # -----------------------------------------------------------------------------
+      # Disable MOTD (we'll use our own)
+      PrintMotd no
+      
+      # Print last login
+      PrintLastLog yes
+      
+      # Use DNS (disable if causing delays)
+      UseDNS no
+      
+      # PAM (required for various features)
+      UsePAM yes
+      
+      # Subsystems
+      Subsystem sftp /usr/lib/openssh/sftp-server -f AUTHPRIV -l INFO
+      
+      # Banner
+      Banner /etc/ssh/banner
+
+  - path: /etc/ssh/banner
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ******************************************************************************
+      *                                                                            *
+      *  AUTHORIZED ACCESS ONLY                                                    *
+      *                                                                            *
+      *  This system is for authorized users only. All activity is monitored       *
+      *  and logged. Unauthorized access attempts will be reported.                *
+      *                                                                            *
+      ******************************************************************************
+
+  # ===========================================================================
+  # FAIL2BAN CONFIGURATION
+  # ===========================================================================
+  
+  - path: /etc/fail2ban/jail.local
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # =============================================================================
+      # FAIL2BAN LOCAL CONFIGURATION
+      # =============================================================================
+      
+      [DEFAULT]
+      # Ban duration (10 minutes initial, increases with repeat offenses)
+      bantime = 10m
+      
+      # Incremental ban time
+      bantime.increment = true
+      bantime.factor = 24
+      bantime.maxtime = 5w
+      
+      # Find time window
+      findtime = 10m
+      
+      # Max retries before ban
+      maxretry = 5
+      
+      # Ignore local addresses
+      ignoreip = 127.0.0.1/8 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+      
+      # Use iptables (not nftables)
+      banaction = iptables-multiport
+      banaction_allports = iptables-allports
+      
+      # Email notifications (configure if needed)
+      # destemail = admin@example.com
+      # sender = fail2ban@example.com
+      # mta = sendmail
+      # action = %(action_mwl)s
+      
+      # -----------------------------------------------------------------------------
+      # SSH JAIL
+      # -----------------------------------------------------------------------------
+      [sshd]
+      enabled = true
+      port = ssh,22,4444
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 3
+      bantime = 1h
+      findtime = 10m
+      
+      # Aggressive mode for repeated offenders
+      [sshd-aggressive]
+      enabled = true
+      port = ssh,22,4444
+      filter = sshd[mode=aggressive]
+      logpath = /var/log/auth.log
+      maxretry = 1
+      bantime = 24h
+      findtime = 24h
+      
+      # -----------------------------------------------------------------------------
+      # DOCKER/TRAEFIK (if exposing containers)
+      # -----------------------------------------------------------------------------
+      [traefik-auth]
+      enabled = false
+      port = http,https
+      filter = traefik-auth
+      logpath = /var/log/traefik/access.log
+      maxretry = 5
+      bantime = 1h
+
+  - path: /etc/fail2ban/filter.d/traefik-auth.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Fail2ban filter for Traefik authentication failures
+      [Definition]
+      failregex = ^.*"ClientHost":"<HOST>".*"DownstreamStatus":401.*$
+                  ^.*"ClientHost":"<HOST>".*"DownstreamStatus":403.*$
+      ignoreregex =
+
+  # ===========================================================================
+  # AUDIT CONFIGURATION
+  # ===========================================================================
+  
+  - path: /etc/audit/rules.d/99-hardening.rules
+    owner: root:root
+    permissions: '0640'
+    content: |
+      # =============================================================================
+      # AUDIT RULES FOR SERVER HARDENING
+      # =============================================================================
+      # Based on CIS Benchmark recommendations
+      # =============================================================================
+      
+      # Delete all existing rules
+      -D
+      
+      # Set buffer size (adjust based on system load)
+      -b 8192
+      
+      # Failure mode (1=printk, 2=panic)
+      -f 1
+      
+      # -----------------------------------------------------------------------------
+      # DATE/TIME CHANGES
+      # -----------------------------------------------------------------------------
+      -a always,exit -F arch=b64 -S adjtimex -S settimeofday -k time-change
+      -a always,exit -F arch=b32 -S adjtimex -S settimeofday -S stime -k time-change
+      -a always,exit -F arch=b64 -S clock_settime -k time-change
+      -a always,exit -F arch=b32 -S clock_settime -k time-change
+      -w /etc/localtime -p wa -k time-change
+      
+      # -----------------------------------------------------------------------------
+      # USER/GROUP MODIFICATIONS
+      # -----------------------------------------------------------------------------
+      -w /etc/group -p wa -k identity
+      -w /etc/passwd -p wa -k identity
+      -w /etc/gshadow -p wa -k identity
+      -w /etc/shadow -p wa -k identity
+      -w /etc/security/opasswd -p wa -k identity
+      
+      # -----------------------------------------------------------------------------
+      # NETWORK CONFIGURATION
+      # -----------------------------------------------------------------------------
+      -a always,exit -F arch=b64 -S sethostname -S setdomainname -k system-locale
+      -a always,exit -F arch=b32 -S sethostname -S setdomainname -k system-locale
+      -w /etc/issue -p wa -k system-locale
+      -w /etc/issue.net -p wa -k system-locale
+      -w /etc/hosts -p wa -k system-locale
+      -w /etc/network -p wa -k system-locale
+      
+      # -----------------------------------------------------------------------------
+      # LOGIN/LOGOUT EVENTS
+      # -----------------------------------------------------------------------------
+      -w /var/log/lastlog -p wa -k logins
+      -w /var/run/faillock -p wa -k logins
+      -w /var/log/tallylog -p wa -k logins
+      
+      # -----------------------------------------------------------------------------
+      # SESSION INITIATION
+      # -----------------------------------------------------------------------------
+      -w /var/run/utmp -p wa -k session
+      -w /var/log/wtmp -p wa -k session
+      -w /var/log/btmp -p wa -k session
+      
+      # -----------------------------------------------------------------------------
+      # PERMISSION MODIFICATIONS
+      # -----------------------------------------------------------------------------
+      -a always,exit -F arch=b64 -S chmod -S fchmod -S fchmodat -F auid>=1000 -F auid!=4294967295 -k perm_mod
+      -a always,exit -F arch=b32 -S chmod -S fchmod -S fchmodat -F auid>=1000 -F auid!=4294967295 -k perm_mod
+      -a always,exit -F arch=b64 -S chown -S fchown -S fchownat -S lchown -F auid>=1000 -F auid!=4294967295 -k perm_mod
+      -a always,exit -F arch=b32 -S chown -S fchown -S fchownat -S lchown -F auid>=1000 -F auid!=4294967295 -k perm_mod
+      -a always,exit -F arch=b64 -S setxattr -S lsetxattr -S fsetxattr -S removexattr -S lremovexattr -S fremovexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod
+      -a always,exit -F arch=b32 -S setxattr -S lsetxattr -S fsetxattr -S removexattr -S lremovexattr -S fremovexattr -F auid>=1000 -F auid!=4294967295 -k perm_mod
+      
+      # -----------------------------------------------------------------------------
+      # UNAUTHORIZED ACCESS ATTEMPTS
+      # -----------------------------------------------------------------------------
+      -a always,exit -F arch=b64 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -k access
+      -a always,exit -F arch=b32 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -k access
+      -a always,exit -F arch=b64 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -k access
+      -a always,exit -F arch=b32 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -k access
+      
+      # -----------------------------------------------------------------------------
+      # PRIVILEGED COMMANDS
+      # -----------------------------------------------------------------------------
+      -a always,exit -F path=/usr/bin/sudo -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged
+      -a always,exit -F path=/usr/bin/su -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged
+      -a always,exit -F path=/usr/bin/chsh -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged
+      -a always,exit -F path=/usr/bin/chfn -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged
+      -a always,exit -F path=/usr/bin/newgrp -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged
+      -a always,exit -F path=/usr/bin/gpasswd -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged
+      -a always,exit -F path=/usr/bin/passwd -F perm=x -F auid>=1000 -F auid!=4294967295 -k privileged
+      
+      # -----------------------------------------------------------------------------
+      # DOCKER COMMANDS
+      # -----------------------------------------------------------------------------
+      -w /usr/bin/docker -p x -k docker
+      -w /usr/bin/dockerd -p x -k docker
+      -w /var/lib/docker -p wa -k docker
+      -w /etc/docker -p wa -k docker
+      -w /usr/lib/systemd/system/docker.service -p wa -k docker
+      -w /usr/lib/systemd/system/docker.socket -p wa -k docker
+      
+      # -----------------------------------------------------------------------------
+      # KERNEL MODULES
+      # -----------------------------------------------------------------------------
+      -w /sbin/insmod -p x -k modules
+      -w /sbin/rmmod -p x -k modules
+      -w /sbin/modprobe -p x -k modules
+      -a always,exit -F arch=b64 -S init_module -S delete_module -k modules
+      
+      # -----------------------------------------------------------------------------
+      # SUDOERS
+      # -----------------------------------------------------------------------------
+      -w /etc/sudoers -p wa -k sudoers
+      -w /etc/sudoers.d -p wa -k sudoers
+      
+      # -----------------------------------------------------------------------------
+      # SSH
+      # -----------------------------------------------------------------------------
+      -w /etc/ssh/sshd_config -p wa -k sshd
+      -w /etc/ssh/sshd_config.d -p wa -k sshd
+      
+      # -----------------------------------------------------------------------------
+      # MAKE RULES IMMUTABLE (must be last)
+      # -----------------------------------------------------------------------------
+      -e 2
+
+  # ===========================================================================
+  # JOURNALD CONFIGURATION (Persistent Logging)
+  # ===========================================================================
+  
+  - path: /etc/systemd/journald.conf.d/99-hardening.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [Journal]
+      # Persistent storage
+      Storage=persistent
+      
+      # Compression
+      Compress=yes
+      
+      # Rate limiting
+      RateLimitIntervalSec=30s
+      RateLimitBurst=10000
+      
+      # Size limits
+      SystemMaxUse=2G
+      SystemKeepFree=1G
+      SystemMaxFileSize=100M
+      RuntimeMaxUse=256M
+      
+      # Forward to syslog
+      ForwardToSyslog=yes
+
+  # ===========================================================================
+  # LOGROTATE FOR CUSTOM LOGS
+  # ===========================================================================
+  
+  - path: /etc/logrotate.d/custom-logs
+    owner: root:root
+    permissions: '0644'
+    content: |
+      /var/log/hardening/*.log {
+          daily
+          missingok
+          rotate 30
+          compress
+          delaycompress
+          notifempty
+          create 0640 root adm
+      }
+      
+      /var/log/traefik/*.log {
+          daily
+          missingok
+          rotate 14
+          compress
+          delaycompress
+          notifempty
+          create 0640 root docker
+          postrotate
+              docker kill --signal="USR1" traefik 2>/dev/null || true
+          endscript
+      }
+
+  # ===========================================================================
+  # TIME SYNCHRONIZATION (Chrony)
+  # ===========================================================================
+  
+  - path: /etc/chrony/chrony.conf.d/99-hardening.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Additional NTP servers (cloud providers usually inject their own)
+      pool time.google.com iburst maxsources 4
+      pool time.cloudflare.com iburst maxsources 4
+      
+      # Record rate of time drift
+      driftfile /var/lib/chrony/drift
+      
+      # Allow system clock to be stepped in the first three updates
+      makestep 1.0 3
+      
+      # Enable kernel synchronization
+      rtcsync
+      
+      # Specify directory for log files
+      logdir /var/log/chrony
+
+  # ===========================================================================
+  # AUTOMATIC SECURITY UPDATES
+  # ===========================================================================
+  
+  - path: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root:root
+    permissions: '0644'
+    content: |
+      // Unattended-Upgrade Configuration
+      
+      Unattended-Upgrade::Allowed-Origins {
+          "${distro_id}:${distro_codename}";
+          "${distro_id}:${distro_codename}-security";
+          "${distro_id}ESMApps:${distro_codename}-apps-security";
+          "${distro_id}ESM:${distro_codename}-infra-security";
+      };
+      
+      // Blacklist packages that shouldn't auto-update
+      Unattended-Upgrade::Package-Blacklist {
+          // "docker-ce";
+          // "docker-ce-cli";
+      };
+      
+      // Auto-fix interrupted dpkg
+      Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+      
+      // Remove unused kernel packages
+      Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+      
+      // Remove unused dependencies
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+      
+      // Automatic reboot if required (set time for maintenance window)
+      Unattended-Upgrade::Automatic-Reboot "false";
+      // Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+      
+      // Email notifications (configure if needed)
+      // Unattended-Upgrade::Mail "admin@example.com";
+      // Unattended-Upgrade::MailReport "on-change";
+      
+      // Logging
+      Unattended-Upgrade::SyslogEnable "true";
+      Unattended-Upgrade::SyslogFacility "daemon";
+
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root:root
+    permissions: '0644'
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+
+  # ===========================================================================
+  # SUDO HARDENING
+  # ===========================================================================
+  
+  - path: /etc/sudoers.d/99-hardening
+    owner: root:root
+    permissions: '0440'
+    content: |
+      # Sudo hardening configuration
+      
+      # Require password for sudo (disable NOPASSWD where possible)
+      Defaults    env_reset
+      Defaults    mail_badpass
+      Defaults    secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      
+      # Timeout for sudo password cache (5 minutes)
+      Defaults    timestamp_timeout=5
+      
+      # Log sudo commands
+      Defaults    logfile="/var/log/sudo.log"
+      Defaults    log_input, log_output
+      Defaults    iolog_dir="/var/log/sudo-io/%{user}"
+      
+      # Require tty for sudo
+      Defaults    requiretty
+      
+      # Show asterisks when typing password
+      Defaults    pwfeedback
+      
+      # Restrict sudo to specific groups
+      # %sudo    ALL=(ALL:ALL) ALL
+      # %wheel   ALL=(ALL:ALL) ALL
+
+  # ===========================================================================
+  # PAM CONFIGURATION (Password Policies)
+  # ===========================================================================
+  
+  - path: /etc/security/pwquality.conf.d/99-hardening.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Password quality requirements
+      minlen = 14
+      dcredit = -1
+      ucredit = -1
+      ocredit = -1
+      lcredit = -1
+      minclass = 4
+      maxrepeat = 3
+      maxclassrepeat = 4
+      gecoscheck = 1
+      dictcheck = 1
+      usercheck = 1
+      enforcing = 1
+
+  # ===========================================================================
+  # FILESYSTEM HARDENING
+  # ===========================================================================
+  
+  - path: /etc/modprobe.d/hardening.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Disable unnecessary kernel modules
+      
+      # Disable USB storage (uncomment if not needed)
+      # install usb-storage /bin/true
+      
+      # Disable firewire
+      install firewire-core /bin/true
+      install firewire-ohci /bin/true
+      install firewire-sbp2 /bin/true
+      
+      # Disable uncommon filesystems
+      install cramfs /bin/true
+      install freevxfs /bin/true
+      install jffs2 /bin/true
+      install hfs /bin/true
+      install hfsplus /bin/true
+      install squashfs /bin/true
+      install udf /bin/true
+      
+      # Disable uncommon network protocols
+      install dccp /bin/true
+      install sctp /bin/true
+      install rds /bin/true
+      install tipc /bin/true
+
+  # ===========================================================================
+  # UMASK HARDENING
+  # ===========================================================================
+  
+  - path: /etc/profile.d/umask.sh
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Set secure umask
+      # 027 = owner full, group read/execute, others none
+      umask 027
+
+  - path: /etc/login.defs.d/99-hardening.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # This file supplements /etc/login.defs
+      # Note: Some systems don't support login.defs.d
+      # Apply these settings manually if needed
+      
+      # Password aging
+      PASS_MAX_DAYS   90
+      PASS_MIN_DAYS   7
+      PASS_WARN_AGE   14
+      
+      # Umask
+      UMASK           027
+      
+      # Encryption method
+      ENCRYPT_METHOD  SHA512
+
+  # ===========================================================================
+  # MOTD / LOGIN BANNER
+  # ===========================================================================
+  
+  - path: /etc/motd
+    owner: root:root
+    permissions: '0644'
+    content: |
+      
+      ══════════════════════════════════════════════════════════════════════════════
+       System Information
+      ══════════════════════════════════════════════════════════════════════════════
+      
+       Run 'system-status' for current system status
+       Run 'docker-status' for container status
+       Run 'verify-hardening.sh' to verify security settings
+      
+      ══════════════════════════════════════════════════════════════════════════════
+      
+
+  - path: /etc/update-motd.d/99-custom
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Custom MOTD script
+      
+      echo ""
+      echo "  Hostname:    $(hostname -f 2>/dev/null || hostname)"
+      echo "  IP Address:  $(hostname -I 2>/dev/null | awk '{print $1}')"
+      echo "  Uptime:      $(uptime -p 2>/dev/null || uptime)"
+      echo "  Load:        $(cat /proc/loadavg | awk '{print $1, $2, $3}')"
+      echo "  Memory:      $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
+      echo "  Disk:        $(df -h / | awk 'NR==2 {print $3 "/" $2 " (" $5 " used)"}')"
+      
+      # Docker status
+      if command -v docker &>/dev/null && systemctl is-active docker &>/dev/null; then
+          containers=$(docker ps -q 2>/dev/null | wc -l)
+          echo "  Containers:  $containers running"
+      fi
+      
+      # Security updates
+      if command -v apt &>/dev/null; then
+          updates=$(apt list --upgradable 2>/dev/null | grep -c security || echo "0")
+          if [[ "$updates" -gt 0 ]]; then
+              echo ""
+              echo "  ⚠ Security updates available: $updates"
+          fi
+      fi
+      echo ""
+
+  # ===========================================================================
+  # USEFUL SCRIPTS
+  # ===========================================================================
+  
+  - path: /usr/local/bin/system-status
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Quick system status overview
+      
+      echo "═══════════════════════════════════════════════════════════════"
+      echo "  SYSTEM STATUS: $(hostname)"
+      echo "═══════════════════════════════════════════════════════════════"
+      echo ""
+      
+      echo "── System ──────────────────────────────────────────────────────"
+      echo "Hostname:    $(hostname -f 2>/dev/null || hostname)"
+      echo "Kernel:      $(uname -r)"
+      echo "Uptime:      $(uptime -p)"
+      echo ""
+      
+      echo "── Resources ───────────────────────────────────────────────────"
+      echo "Load:        $(cat /proc/loadavg)"
+      echo "Memory:"
+      free -h | grep -E "Mem|Swap" | sed 's/^/  /'
+      echo ""
+      echo "Disk:"
+      df -h / /home /var 2>/dev/null | sed 's/^/  /'
+      echo ""
+      
+      echo "── Network ─────────────────────────────────────────────────────"
+      ip -4 addr show | grep -E "inet " | grep -v "127.0.0.1" | awk '{print "  " $NF ": " $2}'
+      echo ""
+      
+      echo "── Services ────────────────────────────────────────────────────"
+      for svc in docker sshd fail2ban chrony auditd; do
+          status=$(systemctl is-active $svc 2>/dev/null || echo "not found")
+          printf "  %-15s %s\n" "$svc:" "$status"
+      done
+      echo ""
+      
+      echo "── Security ────────────────────────────────────────────────────"
+      echo "Firewall:"
+      echo "  INPUT policy:  $(iptables -L INPUT -n 2>/dev/null | head -1 | grep -oP 'policy \K\w+')"
+      echo "  Rules:         $(iptables -L INPUT -n 2>/dev/null | tail -n +3 | wc -l) rules"
+      echo ""
+      echo "Fail2ban:"
+      fail2ban-client status 2>/dev/null | grep "Jail list" | sed 's/^/  /' || echo "  Not running"
+      echo ""
+      
+      echo "── Connections ─────────────────────────────────────────────────"
+      echo "Established:  $(ss -tn state established 2>/dev/null | tail -n +2 | wc -l)"
+      echo "Listening:    $(ss -tln 2>/dev/null | tail -n +2 | wc -l) ports"
+      echo ""
+
+  - path: /usr/local/bin/docker-status
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Docker status overview
+      
+      if ! command -v docker &>/dev/null; then
+          echo "Docker is not installed"
+          exit 1
+      fi
+      
+      if ! systemctl is-active docker &>/dev/null; then
+          echo "Docker is not running"
+          exit 1
+      fi
+      
+      echo "═══════════════════════════════════════════════════════════════"
+      echo "  DOCKER STATUS"
+      echo "═══════════════════════════════════════════════════════════════"
+      echo ""
+      
+      echo "── Overview ────────────────────────────────────────────────────"
+      docker system df
+      echo ""
+      
+      echo "── Containers ──────────────────────────────────────────────────"
+      docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      echo ""
+      
+      echo "── Images ──────────────────────────────────────────────────────"
+      docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+      echo ""
+      
+      echo "── Networks ────────────────────────────────────────────────────"
+      docker network ls
+      echo ""
+      
+      echo "── Volumes ─────────────────────────────────────────────────────"
+      docker volume ls
+      echo ""
+
+  - path: /usr/local/bin/docker-cleanup
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Docker cleanup script
+      
+      set -euo pipefail
+      
+      echo "Docker Cleanup Script"
+      echo "====================="
+      echo ""
+      
+      echo "Current usage:"
+      docker system df
+      echo ""
+      
+      read -p "Remove stopped containers? [y/N] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+          docker container prune -f
+      fi
+      
+      read -p "Remove unused images? [y/N] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+          docker image prune -a -f
+      fi
+      
+      read -p "Remove unused volumes? [y/N] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+          docker volume prune -f
+      fi
+      
+      read -p "Remove unused networks? [y/N] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+          docker network prune -f
+      fi
+      
+      read -p "Remove build cache? [y/N] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+          docker builder prune -a -f
+      fi
+      
+      echo ""
+      echo "Final usage:"
+      docker system df
+
+  - path: /usr/local/bin/security-audit
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Quick security audit
+      
+      echo "═══════════════════════════════════════════════════════════════"
+      echo "  SECURITY AUDIT: $(hostname)"
+      echo "  Date: $(date)"
+      echo "═══════════════════════════════════════════════════════════════"
+      echo ""
+      
+      echo "── Failed Logins (Last 24h) ────────────────────────────────────"
+      journalctl -u sshd --since "24 hours ago" 2>/dev/null | grep -i "failed\|invalid" | tail -10 || echo "  None found"
+      echo ""
+      
+      echo "── Fail2ban Status ─────────────────────────────────────────────"
+      if command -v fail2ban-client &>/dev/null; then
+          fail2ban-client status 2>/dev/null || echo "  Not running"
+          echo ""
+          echo "  Currently banned IPs:"
+          for jail in $(fail2ban-client status 2>/dev/null | grep "Jail list" | sed 's/.*://;s/,//g'); do
+              banned=$(fail2ban-client status "$jail" 2>/dev/null | grep "Banned IP" | sed 's/.*://')
+              [[ -n "$banned" ]] && echo "    $jail: $banned"
+          done
+      else
+          echo "  Fail2ban not installed"
+      fi
+      echo ""
+      
+      echo "── Recent Sudo Usage ───────────────────────────────────────────"
+      if [[ -f /var/log/sudo.log ]]; then
+          tail -10 /var/log/sudo.log | sed 's/^/  /'
+      else
+          journalctl -t sudo --since "24 hours ago" 2>/dev/null | tail -10 | sed 's/^/  /' || echo "  No logs found"
+      fi
+      echo ""
+      
+      echo "── Listening Ports ─────────────────────────────────────────────"
+      ss -tlnp 2>/dev/null | tail -n +2 | awk '{print "  " $4 " - " $6}' | sed 's/users:((//' | sed 's/))//'
+      echo ""
+      
+      echo "── Open Files by Root ──────────────────────────────────────────"
+      lsof -u root -i -n 2>/dev/null | grep LISTEN | head -10 | sed 's/^/  /' || echo "  Unable to check"
+      echo ""
+      
+      echo "── Recent Package Changes ──────────────────────────────────────"
+      if [[ -f /var/log/dpkg.log ]]; then
+          grep -E "install|upgrade|remove" /var/log/dpkg.log 2>/dev/null | tail -10 | sed 's/^/  /'
+      else
+          echo "  No package log found"
+      fi
+      echo ""
+      
+      echo "── Audit Log Summary ───────────────────────────────────────────"
+      if command -v aureport &>/dev/null; then
+          aureport --summary 2>/dev/null | head -20 | sed 's/^/  /' || echo "  Audit daemon not running"
+      else
+          echo "  aureport not available"
+      fi
+      echo ""
+
+  - path: /usr/local/bin/update-ssh-port
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Switch SSH to secure port
+      
+      set -euo pipefail
+      
+      NEW_PORT="${1:-4444}"
+      CONFIG_FILE="/etc/ssh/sshd_config.d/99-hardening.conf"
+      
+      echo "SSH Port Update Script"
+      echo "======================"
+      echo ""
+      echo "This will change SSH from port 22 to port $NEW_PORT"
+      echo ""
+      echo "IMPORTANT: Ensure port $NEW_PORT is allowed in firewall before proceeding!"
+      echo ""
+      
+      # Check firewall
+      if ! iptables -L INPUT -n | grep -q "dpt:$NEW_PORT"; then
+          echo "WARNING: Port $NEW_PORT may not be open in firewall!"
+          echo "Check with: iptables -L INPUT -n | grep $NEW_PORT"
+          echo ""
+      fi
+      
+      read -p "Continue? [y/N] " -n 1 -r
+      echo
+      
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+          echo "Aborted"
+          exit 1
+      fi
+      
+      # Update config
+      if [[ -f "$CONFIG_FILE" ]]; then
+          sed -i "s/^Port .*/Port $NEW_PORT/" "$CONFIG_FILE"
+          sed -i "s/^#Port .*/Port $NEW_PORT/" "$CONFIG_FILE"
+          
+          echo "Updated $CONFIG_FILE"
+          echo ""
+          
+          # Test config
+          echo "Testing SSH configuration..."
+          if sshd -t; then
+              echo "Configuration OK"
+              echo ""
+              
+              echo "Restarting SSH..."
+              systemctl restart sshd
+              
+              echo ""
+              echo "SSH now listening on port $NEW_PORT"
+              echo ""
+              echo "KEEP THIS SESSION OPEN and test with a new connection:"
+              echo "  ssh -p $NEW_PORT user@$(hostname -I | awk '{print $1}')"
+              echo ""
+              echo "If you can't connect, run from this session:"
+              echo "  sed -i 's/^Port .*/Port 22/' $CONFIG_FILE && systemctl restart sshd"
+          else
+              echo "Configuration test FAILED - changes NOT applied"
+              exit 1
+          fi
+      else
+          echo "SSH config file not found: $CONFIG_FILE"
+          exit 1
+      fi
+
+  - path: /usr/local/bin/check-updates
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Check for available updates
+      
+      echo "Checking for updates..."
+      echo ""
+      
+      apt update -qq
+      
+      echo "═══════════════════════════════════════════════════════════════"
+      echo "  AVAILABLE UPDATES"
+      echo "═══════════════════════════════════════════════════════════════"
+      echo ""
+      
+      # All updates
+      updates=$(apt list --upgradable 2>/dev/null | grep -v "Listing" | wc -l)
+      echo "Total updates available: $updates"
+      echo ""
+      
+      # Security updates
+      security=$(apt list --upgradable 2>/dev/null | grep -i security | wc -l)
+      echo "Security updates: $security"
+      echo ""
+      
+      if [[ $updates -gt 0 ]]; then
+          echo "── Package List ────────────────────────────────────────────────"
+          apt list --upgradable 2>/dev/null | grep -v "Listing"
+          echo ""
+          echo "Run 'sudo apt upgrade' to install updates"
+      fi
+
+  # ===========================================================================
+  # SHELL IMPROVEMENTS
+  # ===========================================================================
+  
+  - path: /etc/profile.d/aliases.sh
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Useful aliases for server management
+      
+      # Safety
+      alias rm='rm -i'
+      alias cp='cp -i'
+      alias mv='mv -i'
+      
+      # Convenience
+      alias ll='ls -alF'
+      alias la='ls -A'
+      alias l='ls -CF'
+      alias ..='cd ..'
+      alias ...='cd ../..'
+      
+      # Grep with color
+      alias grep='grep --color=auto'
+      alias fgrep='fgrep --color=auto'
+      alias egrep='egrep --color=auto'
+      
+      # System
+      alias ports='ss -tlnp'
+      alias connections='ss -tn'
+      alias listen='lsof -i -P -n | grep LISTEN'
+      alias meminfo='free -h'
+      alias cpuinfo='lscpu'
+      alias diskinfo='df -h'
+      
+      # Docker
+      alias dps='docker ps'
+      alias dpsa='docker ps -a'
+      alias dimg='docker images'
+      alias dlogs='docker logs -f'
+      alias dexec='docker exec -it'
+      alias dstop='docker stop $(docker ps -q)'
+      
+      # Logs
+      alias syslog='journalctl -f'
+      alias authlog='journalctl -f -u sshd'
+      
+      # Network
+      alias myip='curl -s ifconfig.me && echo'
+      alias localip='hostname -I | awk "{print \$1}"'
+
+  - path: /etc/profile.d/history.sh
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Enhanced bash history
+      
+      # Append to history, don't overwrite
+      shopt -s histappend
+      
+      # Save multi-line commands as one
+      shopt -s cmdhist
+      
+      # Large history
+      export HISTSIZE=10000
+      export HISTFILESIZE=20000
+      
+      # Ignore duplicates and spaces
+      export HISTCONTROL=ignoreboth:erasedups
+      
+      # Add timestamp to history
+      export HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S  "
+      
+      # Ignore common commands
+      export HISTIGNORE="ls:ll:cd:pwd:exit:clear:history"
+
+  - path: /root/.vimrc
+    owner: root:root
+    permissions: '0644'
+    content: |
+      " Basic vim configuration
+      syntax on
+      set number
+      set tabstop=4
+      set shiftwidth=4
+      set expandtab
+      set autoindent
+      set smartindent
+      set hlsearch
+      set incsearch
+      set ignorecase
+      set smartcase
+      set showmatch
+      set ruler
+      set laststatus=2
+      set background=dark
+      set mouse=a
+      set encoding=utf-8
+      set backspace=indent,eol,start
+      
+      " Highlight trailing whitespace
+      highlight ExtraWhitespace ctermbg=red guibg=red
+      match ExtraWhitespace /\s\+$/
+
+  # ===========================================================================
+  # CRON JOBS
+  # ===========================================================================
+  
+  - path: /etc/cron.d/server-maintenance
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Server maintenance cron jobs
+      SHELL=/bin/bash
+      PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+      
+      # Docker cleanup (weekly, Sunday 3am)
+      0 3 * * 0 root docker system prune -f --volumes >> /var/log/docker-cleanup.log 2>&1
+      
+      # Clear old log files (daily, 4am)
+      0 4 * * * root find /var/log -type f -name "*.gz" -mtime +30 -delete
+      
+      # Update file database (daily, 5am)
+      0 5 * * * root updatedb
+      
+      # Sync time (hourly)
+      0 * * * * root chronyc makestep > /dev/null 2>&1 || true
+
+  # ===========================================================================
+  # LIMITS CONFIGURATION
+  # ===========================================================================
+  
+  - path: /etc/security/limits.d/99-hardening.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # Security limits
+      
+      # Limit core dumps
+      * soft core 0
+      * hard core 0
+      
+      # Increase file descriptors for services
+      root soft nofile 65535
+      root hard nofile 65535
+      * soft nofile 65535
+      * hard nofile 65535
+      
+      # Increase max processes
+      root soft nproc unlimited
+      root hard nproc unlimited
+      * soft nproc 65535
+      * hard nproc 65535
+
+# -----------------------------------------------------------------------------
+# RUN COMMANDS
+# -----------------------------------------------------------------------------
+runcmd:
+  # Create necessary directories
+  - mkdir -p /var/log/hardening
+  - mkdir -p /var/log/traefik
+  - mkdir -p /var/log/sudo-io
+  - mkdir -p /var/log/journal
+  - mkdir -p /etc/chrony/chrony.conf.d
+  - mkdir -p /etc/systemd/journald.conf.d
+  
+  # Set permissions
+  - chmod 750 /var/log/sudo-io
+  - chmod 700 /root
+  
+  # Disable unnecessary services
+  - |
+    for service in \
+      avahi-daemon \
+      cups \
+      cups-browsed \
+      bluetooth \
+      ModemManager \
+      whoopsie \
+      apport \
+      snapd; do
+      systemctl stop "$service" 2>/dev/null || true
+      systemctl disable "$service" 2>/dev/null || true
+      systemctl mask "$service" 2>/dev/null || true
+    done
+  
+  # Enable security services
+  - systemctl enable auditd
+  - systemctl start auditd
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+  - systemctl enable chrony
+  - systemctl start chrony
+  
+  # Load audit rules
+  - augenrules --load 2>/dev/null || true
+  
+  # Restart journald for persistent logging
+  - systemctl restart systemd-journald
+  
+  # Secure /tmp (if separate partition isn't used)
+  - |
+    if ! mount | grep -q "on /tmp type"; then
+      echo "tmpfs /tmp tmpfs defaults,rw,nosuid,nodev,noexec,relatime,size=2G 0 0" >> /etc/fstab
+    fi
+  
+  # Secure /dev/shm
+  - |
+    if ! grep -q "/dev/shm" /etc/fstab; then
+      echo "tmpfs /dev/shm tmpfs defaults,nodev,nosuid,noexec 0 0" >> /etc/fstab
+    fi
+  
+  # Secure shared memory
+  - mount -o remount,nodev,nosuid,noexec /dev/shm 2>/dev/null || true
+  
+  # Remove unnecessary SUID/SGID bits (be careful with this)
+  # - chmod u-s /usr/bin/newgrp
+  # - chmod u-s /usr/bin/chsh
+  # - chmod u-s /usr/bin/chfn
+  
+  # Restrict cron to root
+  - echo "root" > /etc/cron.allow
+  - rm -f /etc/cron.deny
+  - chmod 600 /etc/cron.allow
+  
+  # Restrict at to root
+  - echo "root" > /etc/at.allow
+  - rm -f /etc/at.deny
+  - chmod 600 /etc/at.allow
+  
+  # Disable USB storage (uncomment if not needed)
+  # - echo "blacklist usb-storage" >> /etc/modprobe.d/blacklist.conf
+  
+  # Restart SSH with new configuration
+  - |
+    if sshd -t; then
+      systemctl restart sshd
+    else
+      echo "SSH config error - not restarting" >> /var/log/cloud-init-hardening.log
+    fi
+  
+  # Update login.defs if possible
+  - |
+    if [[ -f /etc/login.defs ]]; then
+      sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   90/' /etc/login.defs
+      sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS   7/' /etc/login.defs
+      sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE   14/' /etc/login.defs
+      sed -i 's/^UMASK.*/UMASK           027/' /etc/login.defs
+    fi
+  
+  # Initialize AIDE database (takes time, run in background)
+  - |
+    if command -v aide &>/dev/null; then
+      aide --init &
+      disown
+    fi
+  
+  # Run rkhunter update (background)
+  - |
+    if command -v rkhunter &>/dev/null; then
+      rkhunter --update --propupd &
+      disown
+    fi
+  
+  # Log completion
+  - echo "Additional hardening completed at $(date)" >> /var/log/cloud-init-hardening.log

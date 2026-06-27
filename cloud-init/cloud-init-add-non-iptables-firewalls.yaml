@@ -1,0 +1,131 @@
+write_files:
+  # ... existing files ...
+
+  # -----------------------------------------------------------------------------
+  # DISABLE ALTERNATIVE FIREWALLS SCRIPT
+  # -----------------------------------------------------------------------------
+  - path: /usr/local/bin/disable-alternative-firewalls.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Condensed version for cloud-init
+      set -euo pipefail
+      
+      log_info() { echo "[FIREWALL-CLEANUP] $1"; }
+      
+      # Detect package manager
+      if command -v apt &>/dev/null; then
+          PKG_MGR="apt"
+      elif command -v dnf &>/dev/null; then
+          PKG_MGR="dnf"
+      else
+          PKG_MGR="yum"
+      fi
+      
+      log_info "Starting firewall cleanup..."
+      
+      # Disable UFW
+      if command -v ufw &>/dev/null; then
+          log_info "Disabling UFW..."
+          ufw disable 2>/dev/null || true
+          systemctl stop ufw 2>/dev/null || true
+          systemctl disable ufw 2>/dev/null || true
+          systemctl mask ufw 2>/dev/null || true
+          case "$PKG_MGR" in
+              apt) DEBIAN_FRONTEND=noninteractive apt-get purge -y ufw 2>/dev/null || true ;;
+              *) $PKG_MGR remove -y ufw 2>/dev/null || true ;;
+          esac
+      fi
+      
+      # Disable nftables
+      if command -v nft &>/dev/null; then
+          log_info "Disabling nftables..."
+          nft flush ruleset 2>/dev/null || true
+          systemctl stop nftables 2>/dev/null || true
+          systemctl disable nftables 2>/dev/null || true
+          systemctl mask nftables 2>/dev/null || true
+          # Clear config
+          [[ -f /etc/nftables.conf ]] && echo -e "#!/usr/sbin/nft -f\nflush ruleset" > /etc/nftables.conf
+      fi
+      
+      # Disable firewalld
+      if command -v firewall-cmd &>/dev/null; then
+          log_info "Disabling firewalld..."
+          systemctl stop firewalld 2>/dev/null || true
+          systemctl disable firewalld 2>/dev/null || true
+          systemctl mask firewalld 2>/dev/null || true
+          case "$PKG_MGR" in
+              apt) DEBIAN_FRONTEND=noninteractive apt-get purge -y firewalld 2>/dev/null || true ;;
+              *) $PKG_MGR remove -y firewalld 2>/dev/null || true ;;
+          esac
+      fi
+      
+      # Disable Shorewall
+      if command -v shorewall &>/dev/null; then
+          log_info "Disabling Shorewall..."
+          systemctl stop shorewall shorewall6 2>/dev/null || true
+          systemctl disable shorewall shorewall6 2>/dev/null || true
+          systemctl mask shorewall shorewall6 2>/dev/null || true
+          case "$PKG_MGR" in
+              apt) DEBIAN_FRONTEND=noninteractive apt-get purge -y shorewall shorewall6 2>/dev/null || true ;;
+              *) $PKG_MGR remove -y shorewall shorewall6 2>/dev/null || true ;;
+          esac
+      fi
+      
+      # Disable CSF
+      if [[ -d /etc/csf ]]; then
+          log_info "Disabling CSF..."
+          csf -x 2>/dev/null || true
+          systemctl stop csf lfd 2>/dev/null || true
+          systemctl disable csf lfd 2>/dev/null || true
+          [[ -x /etc/csf/uninstall.sh ]] && /etc/csf/uninstall.sh 2>/dev/null || true
+      fi
+      
+      # Switch to iptables-legacy if available (Debian/Ubuntu)
+      if [[ "$PKG_MGR" == "apt" ]] && command -v update-alternatives &>/dev/null; then
+          if [[ -x /usr/sbin/iptables-legacy ]]; then
+              log_info "Switching to iptables-legacy..."
+              update-alternatives --set iptables /usr/sbin/iptables-legacy 2>/dev/null || true
+              update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy 2>/dev/null || true
+          fi
+      fi
+      
+      # Install iptables tools
+      log_info "Installing iptables tools..."
+      case "$PKG_MGR" in
+          apt)
+              DEBIAN_FRONTEND=noninteractive apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y iptables iptables-persistent netfilter-persistent conntrack ipset
+              systemctl enable netfilter-persistent 2>/dev/null || true
+              ;;
+          dnf|yum)
+              $PKG_MGR install -y iptables iptables-services conntrack-tools ipset
+              systemctl enable iptables 2>/dev/null || true
+              ;;
+      esac
+      
+      # Create iptables rules directory
+      mkdir -p /etc/iptables
+      
+      # Reload systemd
+      systemctl daemon-reload
+      
+      log_info "Firewall cleanup complete"
+      
+      # Verify
+      echo ""
+      echo "Verification:"
+      echo "  iptables version: $(iptables --version 2>/dev/null || echo 'not found')"
+      echo "  UFW: $(systemctl is-active ufw 2>/dev/null || echo 'inactive/removed')"
+      echo "  nftables: $(systemctl is-active nftables 2>/dev/null || echo 'inactive')"
+      echo "  firewalld: $(systemctl is-active firewalld 2>/dev/null || echo 'inactive/removed')"
+
+runcmd:
+  # ... existing commands ...
+  
+  # Disable alternative firewalls BEFORE configuring iptables
+  - /usr/local/bin/disable-alternative-firewalls.sh
+  
+  # Then configure iptables firewall
+  - /usr/local/bin/configure-firewall.sh

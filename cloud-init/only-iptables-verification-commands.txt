@@ -1,0 +1,14 @@
+# Check what's managing the firewall
+sudo systemctl list-units --type=service | grep -E 'fire|ufw|nft|shorewall|csf'
+
+# Verify only iptables is active
+sudo iptables -L -n | head -20
+
+# Check for masked services
+sudo systemctl list-unit-files | grep -E 'ufw|nftables|firewalld|shorewall' | grep masked
+
+# Verify iptables version/backend
+sudo iptables --version
+
+# Check if nftables has any rules
+sudo nft list ruleset 2>/dev/null || echo "nftables not available or empty"

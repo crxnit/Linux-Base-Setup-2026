@@ -1,0 +1,24 @@
+- path: /usr/local/bin/force-disconnect-users.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Force disconnect all non-root SSH sessions
+      
+      # Warning first
+      wall "⚠️  SYSTEM INITIALIZATION: All SSH sessions will be disconnected in 30 seconds. Please save your work."
+      
+      sleep 30
+      
+      # Get all SSH sessions except our own
+      my_tty=$(tty | sed 's|/dev/||')
+      
+      for session in $(who | grep -v "$my_tty" | awk '{print $2}'); do
+          pkill -9 -t "$session" 2>/dev/null || true
+      done
+      
+      wall "All user sessions have been disconnected. System initialization continuing."
+
+runcmd:
+  # Force disconnect users at start of cloud-init (optional)
+  - /usr/local/bin/force-disconnect-users.sh &

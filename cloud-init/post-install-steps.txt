@@ -1,0 +1,8 @@
+# Full verification
+sudo /usr/local/bin/verify-hardening.sh
+
+# Quick check that IPv6 is disabled at kernel level
+grep -q "ipv6.disable=1" /proc/cmdline && echo "GRUB IPv6 disable: ACTIVE" || echo "GRUB IPv6 disable: NOT ACTIVE"
+
+# Check cloud-init logs
+sudo cat /var/log/cloud-init-hardening.log

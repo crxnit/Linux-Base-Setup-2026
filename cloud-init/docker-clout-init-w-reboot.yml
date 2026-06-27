@@ -1,0 +1,64 @@
+# -----------------------------------------------------------------------------
+# RUN COMMANDS - Run after boot (updated)
+# -----------------------------------------------------------------------------
+runcmd:
+  # Ensure modules are loaded
+  - modprobe br_netfilter
+  - modprobe nf_conntrack
+  
+  # Apply all sysctl settings
+  - sysctl --system
+  
+  # Update GRUB to disable IPv6 at boot
+  - |
+    if [ -f /etc/default/grub ]; then
+      if ! grep -q "ipv6.disable=1" /etc/default/grub; then
+        sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 ipv6.disable=1"/' /etc/default/grub
+        sed -i 's/GRUB_CMDLINE_LINUX="  /GRUB_CMDLINE_LINUX="/g' /etc/default/grub
+        update-grub 2>/dev/null || grub2-mkconfig -o /boot/grub2/grub.cfg 2>/dev/null || true
+      fi
+    fi
+  
+  # Install Docker if not present
+  - |
+    if ! command -v docker &>/dev/null; then
+      curl -fsSL https://get.docker.com | sh
+      systemctl enable docker
+      systemctl start docker
+    else
+      systemctl restart docker
+    fi
+  
+  # Create Docker config directory
+  - mkdir -p /etc/docker
+  
+  # Final sysctl apply
+  - sleep 2
+  - sysctl --system
+  
+  # Log completion
+  - echo "Docker host hardening completed at $(date)" >> /var/log/cloud-init-hardening.log
+  - /usr/local/bin/verify-hardening.sh >> /var/log/cloud-init-hardening.log 2>&1 || true
+  - echo "System will reboot in 1 minute to apply GRUB changes..." >> /var/log/cloud-init-hardening.log
+
+# -----------------------------------------------------------------------------
+# FINAL MESSAGE
+# -----------------------------------------------------------------------------
+final_message: |
+  ===========================================
+  Docker Host Hardening Complete
+  ===========================================
+  Cloud-init finished at $TIMESTAMP
+  System will reboot automatically to apply GRUB IPv6 disable.
+  After reboot, verify with: sudo /usr/local/bin/verify-hardening.sh
+  ===========================================
+
+# -----------------------------------------------------------------------------
+# AUTOMATIC REBOOT
+# -----------------------------------------------------------------------------
+power_state:
+  delay: "+1"
+  mode: reboot
+  message: "Rebooting to apply kernel hardening (GRUB IPv6 disable)"
+  timeout: 30
+  condition: true
