@@ -480,7 +480,7 @@ write_files:
           notifempty
           create 0640 root docker
           postrotate
-              docker kill --signal="USR1" traefik 2>/dev/null || true
+              docker exec traefik kill -USR1 1 2>/dev/null || true
           endscript
       }
 
